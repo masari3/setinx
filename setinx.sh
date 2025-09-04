@@ -316,8 +316,14 @@ else
   echo "ℹ️  $HOST sudah ada di /etc/hosts"
 fi
 
-# Reload nginx
-nginx -s reload
+# --------------------------
+# Reload Nginx
+# --------------------------
+if [[ "$OS_TYPE" == "macos" ]]; then
+    brew services restart nginx
+else
+    sudo systemctl restart nginx
+fi
 
 echo "🎉 Site setup complete!"
 echo "   URL: http://$HOST:$PORT_HTTP"
