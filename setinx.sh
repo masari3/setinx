@@ -14,83 +14,53 @@ REMOVE_MODE=false
 CUSTOM_PORT=""
 HOST=""
 
-# --------------------------
-# Auto-detect OS
-# --------------------------
-OS_TYPE=$(uname -s)
-if [[ "$OS_TYPE" == "Darwin" ]]; then
-    OS_TYPE="macos"
-elif [[ "$OS_TYPE" == "Linux" ]]; then
-    OS_TYPE="linux"
-else
-    echo "❌ Unsupported OS: $OS_TYPE"
-    exit 1
-fi
-
-# --------------------------
-# Usage / Help
-# --------------------------
-show_help() {
+# ==============================
+# Usage
+# ==============================
+usage() {
   cat <<EOF
-setupnginx.sh v$VERSION - Nginx development server setup
+setupnginx.sh v$VERSION
 
 Usage:
-  $0 -h <domain> [options]
+  ./setupnginx.sh --host <domain> [options]
 
 Options:
-  -h, --host     Domain / host name (required, e.g., laravel.test)
-  -p, --port     Custom port (default macOS: 8080/8443, Linux: 80/443)
-  -r, --root     Custom root folder (default \$HOME/Projects/www/<host_name_without_domain>)
-  -P, --php      Enable PHP-FPM
-  -s, --ssl      Enable HTTPS with self-signed certificate and HTTP -> HTTPS redirect
-  -d, --remove   Remove site and its server block
-  -H, --help     Show this help message
+  --host, -h <domain>    Set hostname (required)
+  --php, -p              Enable PHP-FPM (default TCP 127.0.0.1:9000)
+  --php-tcp <port>       Use PHP-FPM via TCP (custom port, default 9000)
+  --php-sock <path>      Use PHP-FPM via Unix socket (e.g. /usr/local/var/run/php-fpm.sock)
+  --ssl, -s              Enable SSL (mkcert) and force redirect to HTTPS
+  --remove, -r           Remove the site (nginx config + hosts entry, without deleting project root)
+  --port, -P <number>    Custom HTTP port (default 80, or 443 with --ssl)
+  --linux                Force Linux mode
+  --macos                Force macOS mode
+  --help                 Show this help message
 
 Examples:
-  # Laravel dev, PHP-FPM, HTTPS
-  $0 -h laravel.test -P -s
-
-  # CI3 / procedural PHP
-  $0 -h ci3.test -P
-
-  # Static HTML site
-  $0 -h site.local
-
-  # Custom root folder
-  $0 -h custom.dev -r \$HOME/Work/projectX
-
-  # Remove site
-  $0 -h ci3.test -d
-
-  # Custom port
-  $0 -h laravel.test -P -s -p 8081
-
-  # Show help
-  $0 -H
+  ./setupnginx.sh --host myapp.test --php
+  ./setupnginx.sh --host myapp.test --php --ssl
+  ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
+  ./setupnginx.sh --host myapp.test --remove
 EOF
+  exit 0
 }
 
-# Show help if requested
-for arg in "$@"; do
-  if [[ "$arg" == "-H" || "$arg" == "--help" ]]; then
-    show_help
-    exit 0
-  fi
-done
-
-# --------------------------
-# Parse arguments
-# --------------------------
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-    -h|--host) HOST="$2"; shift ;;
-    -p|--port) CUSTOM_PORT="$2"; shift ;;
-    -r|--root) ROOT_DIR="$2"; shift ;;
-    -P|--php) PHP=true ;;
-    -s|--ssl) SSL=true ;;
-    -d|--remove) REMOVE=true ;;
-    -H|--help) show_help; exit 0 ;;
-    *) echo "❌ Unknown parameter: $1"; exit 1 ;;
+# ==============================
+# Parse Arguments
+# ==============================
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --host|-h) HOST="$2"; shift 2;;
+    --php|-p) USE_PHP=true; shift;;
+    --php-tcp) USE_PHP=true; PHP_MODE="tcp"; PHP_TCP_PORT="$2"; shift 2;;
+    --php-sock) USE_PHP=true; PHP_MODE="sock"; PHP_SOCK_PATH="$2"; shift 2;;
+    --ssl|-s) USE_SSL=true; shift;;
+    --remove|-r) REMOVE_MODE=true; shift;;
+    --port|-P) CUSTOM_PORT="$2"; shift 2;;
+    --linux) OS="linux"; shift;;
+    --macos) OS="macos"; shift;;
+    --help) usage;;
+    *) echo "❌ Unknown option: $1"; usage;;
   esac
   shift
 done
