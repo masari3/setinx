@@ -234,7 +234,6 @@ fi
 if [ "$SSL" = true ]; then
 cat >> "$CONF_FILE" <<EOF
 
-# HTTPS server
 server {
     listen $PORT_HTTPS ssl;
     server_name $HOST;
@@ -244,7 +243,6 @@ server {
 
     ssl_certificate     $CRT_FILE;
     ssl_certificate_key $KEY_FILE;
-
 EOF
 
 if [ "$PHP" = true ]; then
@@ -276,6 +274,7 @@ server {
     return 301 https://\$server_name\$request_uri;
 }
 EOF
+
 fi
 
 # --------------------------
@@ -293,7 +292,7 @@ if ! grep -q "$HOST" /etc/hosts; then
   echo "127.0.0.1   $HOST" | sudo tee -a /etc/hosts >/dev/null
   echo "✅ Added $HOST to /etc/hosts"
 else
-  echo "ℹ️  $HOST already in /etc/hosts"
+  echo "ℹ️  $HOST sudah ada di /etc/hosts"
 fi
 
 # Reload nginx
