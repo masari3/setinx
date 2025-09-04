@@ -104,6 +104,25 @@ if [ -z "$HOST" ]; then
 fi
 
 # --------------------------
+# Set ROOT_DIR
+# --------------------------
+# Ambil nama folder dari host, tanpa ekstensi .test/.dev/.local
+HOST_FOLDER_NAME=$(echo "$HOST" | sed -E 's/\.(test|dev|local)$//')
+
+DEFAULT_FOLDER="$PROJECTS_DIR/$HOST_FOLDER_NAME"
+
+if [ -z "$ROOT_DIR" ]; then
+  if [ -d "$DEFAULT_FOLDER" ]; then
+    ROOT_DIR="$DEFAULT_FOLDER"
+    echo "ℹ️  Folder $ROOT_DIR sudah ada, akan digunakan sebagai root"
+  else
+    ROOT_DIR="$DEFAULT_FOLDER"
+    mkdir -p "$ROOT_DIR"
+    echo "ℹ️  Folder $ROOT_DIR belum ada, dibuat baru"
+  fi
+fi
+
+# --------------------------
 # Paths
 # --------------------------
 BREW_PREFIX=$(brew --prefix)
