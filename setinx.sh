@@ -28,19 +28,13 @@ Options:
   --host, -h <domain>    Set hostname (required)
   --php, -p              Enable PHP-FPM (default TCP 127.0.0.1:9000)
   --php-tcp <port>       Use PHP-FPM via TCP (custom port, default 9000)
-  --php-sock <path>      Use PHP-FPM via Unix socket (e.g. /usr/local/var/run/php-fpm.sock)
-  --ssl, -s              Enable SSL (mkcert) and force redirect to HTTPS
-  --remove, -r           Remove the site (nginx config + hosts entry, without deleting project root)
+  --php-sock <path>      Use PHP-FPM via Unix socket
+  --ssl, -s              Enable SSL (mkcert) and redirect HTTP -> HTTPS
+  --remove, -r           Remove the site (nginx config + hosts entry)
   --port, -P <number>    Custom HTTP port (default 80, or 443 with --ssl)
   --linux                Force Linux mode
   --macos                Force macOS mode
   --help                 Show this help message
-
-Examples:
-  ./setupnginx.sh --host myapp.test --php
-  ./setupnginx.sh --host myapp.test --php --ssl
-  ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
-  ./setupnginx.sh --host myapp.test --remove
 EOF
   exit 0
 }
