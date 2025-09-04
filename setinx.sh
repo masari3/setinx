@@ -111,6 +111,7 @@ fi
 if [[ ! -d "$PROJECTS_ROOT" ]]; then
   mkdir -p "$PROJECTS_ROOT"
   echo "📂 Created project root: $PROJECTS_ROOT"
+  echo "<?php phpinfo();" > "$PROJECTS_ROOT/index.php"
 else
   echo "ℹ️  Folder $PROJECTS_ROOT already exists, using it."
 fi
