@@ -143,6 +143,9 @@ server {
 
     index index.php index.html index.htm;
 
+    access_log /var/log/nginx/${HOST}_access.log;
+    error_log  /var/log/nginx/${HOST}_error.log;
+
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
