@@ -191,8 +191,5 @@ restart_nginx
 # Success message
 echo "🎉 Site setup complete!"
 echo "   URL: http://$HOST:$HTTP_PORT"
-if $USE_SSL; then
-  echo "   HTTPS: https://$HOST"
-fi
-echo "   Root: $PROJECTS_ROOT"
-echo "   Config: $NGINX_CONFIG"
+echo "   Root: $SITE_ROOT"
+echo "   Config: $CONF_FILE"
