@@ -72,228 +72,169 @@ if [[ -z "$HOST" ]]; then
   usage
 fi
 
-# --------------------------
-# Set ROOT_DIR
-# --------------------------
-HOST_FOLDER_NAME=$(echo "$HOST" | sed -E 's/\.(test|dev|local)$//')
-DEFAULT_FOLDER="$PROJECTS_DIR/$HOST_FOLDER_NAME"
-
-if [ -z "$ROOT_DIR" ]; then
-  if [ -d "$DEFAULT_FOLDER" ]; then
-    ROOT_DIR="$DEFAULT_FOLDER"
-    echo "ℹ️  Folder $ROOT_DIR exists, will be used as root"
-  else
-    ROOT_DIR="$DEFAULT_FOLDER"
-    mkdir -p "$ROOT_DIR"
-    echo "ℹ️  Folder $ROOT_DIR does not exist, created new"
-  fi
+# ==============================
+# Detect OS
+# ==============================
+if [[ -z "$OS" ]]; then
+  case "$(uname -s)" in
+    Linux*) OS="linux";;
+    Darwin*) OS="macos";;
+    *) echo "❌ Unsupported OS"; exit 1;;
+  esac
 fi
 
-# --------------------------
+# ==============================
 # Paths
-# --------------------------
-BREW_PREFIX=$(brew --prefix)
-NGINX_DIR="$BREW_PREFIX/etc/nginx"
-SITES_AVAILABLE="$NGINX_DIR/sites-available"
-SITES_ENABLED="$NGINX_DIR/sites-enabled"
-CONF_FILE="$SITES_AVAILABLE/$HOST.conf"
-ENABLED_FILE="$SITES_ENABLED/$HOST.conf"
-
-# --------------------------
-# Port defaults
-# --------------------------
-if [ -n "$CUSTOM_PORT" ]; then
-  PORT_HTTP="$CUSTOM_PORT"
-  PORT_HTTPS="$CUSTOM_PORT"
-else
-  if [[ "$OS_TYPE" == "macos" ]]; then
-    PORT_HTTP=8080
-    PORT_HTTPS=8443
-  else
-    PORT_HTTP=80
-    PORT_HTTPS=443
-  fi
+# ==============================
+if [[ "$OS" == "macos" ]]; then
+  NGINX_CONF_DIR="/usr/local/etc/nginx"
+  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/sites-available"
+  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/sites-enabled"
+elif [[ "$OS" == "linux" ]]; then
+  NGINX_CONF_DIR="/etc/nginx"
+  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/sites-available"
+  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/sites-enabled"
 fi
 
-# --------------------------
-# REMOVE MODE
-# --------------------------
-if [ "$REMOVE" = true ]; then
-  echo "🗑 Removing site $HOST ..."
-  [ -f "$CONF_FILE" ] && rm -f "$CONF_FILE" && echo "✅ Removed $CONF_FILE"
-  [ -f "$ENABLED_FILE" ] && rm -f "$ENABLED_FILE" && echo "✅ Removed symlink $ENABLED_FILE"
-  if grep -q "$HOST" /etc/hosts; then
-    sudo sed -i.bak "/$HOST/d" /etc/hosts
-    echo "✅ Removed $HOST from /etc/hosts"
-  fi
-  if [[ "$OS_TYPE" == "macos" ]]; then
-    brew services restart nginx
-  else
-    sudo systemctl restart nginx
-  fi
-  echo "🎉 Site $HOST removed!"
+PROJECTS_ROOT="$HOME/Projects/www/$HOST"
+
+# ==============================
+# Remove mode
+# ==============================
+if $REMOVE_MODE; then
+  echo "🗑 Removing site: $HOST"
+  sudo rm -f "$NGINX_SITES_AVAILABLE/$HOST.conf"
+  sudo rm -f "$NGINX_SITES_ENABLED/$HOST.conf"
+  sudo sed -i.bak "/$HOST/d" /etc/hosts
+  sudo nginx -s reload || true
+  echo "✅ Site $HOST removed."
   exit 0
 fi
 
-# --------------------------
-# ADD MODE
-# --------------------------
-mkdir -p "$SITES_AVAILABLE" "$SITES_ENABLED"
-
-# Detect public/ for PHP projects
-if [ "$PHP" = true ] && [ -d "$ROOT_DIR/public" ]; then
-  ROOT_DIR="$ROOT_DIR/public"
-  echo "ℹ️  Detected public/ folder, root set to $ROOT_DIR"
+# ==============================
+# Prepare project folder
+# ==============================
+if [[ ! -d "$PROJECTS_ROOT" ]]; then
+  mkdir -p "$PROJECTS_ROOT"
+  echo "📂 Created project root: $PROJECTS_ROOT"
+else
+  echo "ℹ️  Folder $PROJECTS_ROOT already exists, using it."
 fi
 
-# --------------------------
-# Ensure log folder exists
-# --------------------------
-if [[ "$OS_TYPE" == "macos" ]]; then
-  LOG_DIR="/usr/local/var/log/nginx"
-  mkdir -p "$LOG_DIR"
-  sudo chown -R $(whoami):staff "$LOG_DIR"
+# ==============================
+# Add to /etc/hosts
+# ==============================
+if ! grep -q "$HOST" /etc/hosts; then
+  echo "127.0.0.1 $HOST" | sudo tee -a /etc/hosts > /dev/null
+  echo "➕ Added $HOST to /etc/hosts"
+else
+  echo "ℹ️  $HOST already exists in /etc/hosts"
 fi
 
-# --------------------------
-# SSL setup
-# --------------------------
-if [ "$SSL" = true ]; then
-  CERT_DIR="$HOME/.nginx/certs"
-  mkdir -p "$CERT_DIR"
-  CRT_FILE="$CERT_DIR/$HOST.crt"
-  KEY_FILE="$CERT_DIR/$HOST.key"
-  if [ ! -f "$CRT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
-    echo "🔐 Generating self-signed certificate for $HOST ..."
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-      -keyout "$KEY_FILE" -out "$CRT_FILE" \
-      -subj "/CN=$HOST/O=Dev"
-  fi
-fi
+# ==============================
+# Nginx Config
+# ==============================
+HTTP_PORT="${CUSTOM_PORT:-80}"
+HTTPS_PORT="443"
+NGINX_CONFIG="$NGINX_SITES_AVAILABLE/$HOST.conf"
 
-# --------------------------
-# Generate server block
-# --------------------------
-if [ "$PHP" = true ]; then
-cat > "$CONF_FILE" <<EOF
+sudo mkdir -p "$NGINX_SITES_AVAILABLE" "$NGINX_SITES_ENABLED"
+
+cat <<EOF | sudo tee "$NGINX_CONFIG" > /dev/null
 server {
-    listen $PORT_HTTP;
+    listen $HTTP_PORT;
     server_name $HOST;
+    root $PROJECTS_ROOT;
 
-    root $ROOT_DIR;
     index index.php index.html index.htm;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
+EOF
 
+if $USE_PHP; then
+  if [[ "$PHP_MODE" == "tcp" ]]; then
+    cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
     location ~ \.php\$ {
         include fastcgi_params;
-        fastcgi_pass unix:$BREW_PREFIX/var/run/php/php-fpm.sock;
+        fastcgi_pass 127.0.0.1:$PHP_TCP_PORT;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        fastcgi_index index.php;
     }
-
-    location ~ /\.ht {
-        deny all;
-    }
-}
 EOF
-
-else
-cat > "$CONF_FILE" <<EOF
-server {
-    listen $PORT_HTTP;
-    server_name $HOST;
-
-    root $ROOT_DIR;
-    index index.html index.htm;
-
-    location / {
-        try_files \$uri \$uri/ =404;
+  else
+    cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
+    location ~ \.php\$ {
+        include fastcgi_params;
+        fastcgi_pass unix:$PHP_SOCK_PATH;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
-}
 EOF
+  fi
 fi
 
-# --------------------------
-# SSL block + redirect
-# --------------------------
-if [ "$SSL" = true ]; then
-cat >> "$CONF_FILE" <<EOF
+echo "}" | sudo tee -a "$NGINX_CONFIG" > /dev/null
+
+if $USE_SSL; then
+  mkcert -install
+  mkcert "$HOST"
+  cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
 
 server {
-    listen $PORT_HTTPS ssl;
+    listen $HTTPS_PORT ssl;
     server_name $HOST;
+    root $PROJECTS_ROOT;
 
-    root $ROOT_DIR;
+    ssl_certificate     $(pwd)/$HOST.pem;
+    ssl_certificate_key $(pwd)/$HOST-key.pem;
+
     index index.php index.html index.htm;
 
-    ssl_certificate     $CRT_FILE;
-    ssl_certificate_key $KEY_FILE;
-EOF
-
-if [ "$PHP" = true ]; then
-cat >> "$CONF_FILE" <<'EOF'
     location / {
-        try_files $uri $uri/ /index.php?$query_string;
+        try_files \$uri \$uri/ /index.php?\$query_string;
     }
+EOF
 
-    location ~ \.php$ {
+  if $USE_PHP; then
+    if [[ "$PHP_MODE" == "tcp" ]]; then
+      cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
+    location ~ \.php\$ {
         include fastcgi_params;
-        fastcgi_pass unix:'"$BREW_PREFIX"'/var/run/php/php-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_index index.php;
-    }
-
-    location ~ /\.ht {
-        deny all;
+        fastcgi_pass 127.0.0.1:$PHP_TCP_PORT;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 EOF
-fi
-
-cat >> "$CONF_FILE" <<EOF
-}
-
-server {
-    listen $PORT_HTTP;
-    server_name $HOST;
-    return 301 https://\$server_name\$request_uri;
-}
+    else
+      cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
+    location ~ \.php\$ {
+        include fastcgi_params;
+        fastcgi_pass unix:$PHP_SOCK_PATH;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
 EOF
+    fi
+  fi
+
+  echo "}" | sudo tee -a "$NGINX_CONFIG" > /dev/null
 fi
 
-# --------------------------
-# Symlink
-# --------------------------
-ln -sf "$CONF_FILE" "$ENABLED_FILE"
+# ==============================
+# Enable site
+# ==============================
+sudo ln -sf "$NGINX_SITES_AVAILABLE/$HOST.conf" "$NGINX_SITES_ENABLED/$HOST.conf"
 
-# Default index.html if non-PHP
-if [ "$PHP" != true ] && [ ! -f "$ROOT_DIR/index.html" ]; then
-  echo "<h1>Hello from $HOST</h1>" > "$ROOT_DIR/index.html"
-fi
+# ==============================
+# Reload nginx
+# ==============================
+sudo nginx -t && sudo nginx -s reload
 
-# Add to /etc/hosts
-if ! grep -q "$HOST" /etc/hosts; then
-  echo "127.0.0.1   $HOST" | sudo tee -a /etc/hosts >/dev/null
-  echo "✅ Added $HOST to /etc/hosts"
-else
-  echo "ℹ️  $HOST already exists in /etc/hosts"
-fi
-
-# --------------------------
-# Reload Nginx
-# --------------------------
-if [[ "$OS_TYPE" == "macos" ]]; then
-    brew services restart nginx
-else
-    sudo systemctl restart nginx
-fi
-
+# ==============================
+# Done
+# ==============================
 echo "🎉 Site setup complete!"
-echo "   URL: http://$HOST:$PORT_HTTP"
-if [ "$SSL" = true ]; then
-  echo "   HTTPS: https://$HOST:$PORT_HTTPS"
+echo "   URL: http://$HOST:$HTTP_PORT"
+if $USE_SSL; then
+  echo "   HTTPS: https://$HOST"
 fi
-echo "   Root: $ROOT_DIR"
-echo "   Config: $CONF_FILE"
+echo "   Root: $PROJECTS_ROOT"
+echo "   Config: $NGINX_CONFIG"
