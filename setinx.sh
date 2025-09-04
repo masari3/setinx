@@ -68,54 +68,40 @@ if [[ -z "$HOST" ]]; then
   usage
 fi
 
-# ==============================
-# Detect OS
-# ==============================
-if [[ -z "$OS" ]]; then
-  case "$(uname -s)" in
-    Linux*) OS="linux";;
-    Darwin*) OS="macos";;
-    *) echo "❌ Unsupported OS"; exit 1;;
-  esac
-fi
+SITE_ROOT="$PROJECTS_ROOT/$HOST"
+CONF_FILE="$SITES_AVAILABLE/$HOST.conf"
 
-# ==============================
-# Paths
-# ==============================
-if [[ "$OS" == "macos" ]]; then
-  NGINX_CONF_DIR="/usr/local/etc/nginx"
-  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/sites-available"
-  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/sites-enabled"
-elif [[ "$OS" == "linux" ]]; then
-  NGINX_CONF_DIR="/etc/nginx"
-  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/sites-available"
-  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/sites-enabled"
-fi
+restart_nginx() {
+  echo "🔄 Restarting Nginx..."
+  if command -v brew &>/dev/null && brew services list | grep -q nginx; then
+    brew services restart nginx >/dev/null
+  else
+    sudo nginx -s reload
+  fi
+}
 
-PROJECTS_ROOT="$HOME/Projects/www/$HOST"
-
-# ==============================
-# Remove mode
-# ==============================
-if $REMOVE_MODE; then
-  echo "🗑 Removing site: $HOST"
-  sudo rm -f "$NGINX_SITES_AVAILABLE/$HOST.conf"
-  sudo rm -f "$NGINX_SITES_ENABLED/$HOST.conf"
+remove_site() {
+  echo "ℹ️ Project folder exists: $SITE_ROOT"
+  echo "🗑 Removing site $HOST..."
+  sudo rm -f "$CONF_FILE"
+  sudo rm -f "$SITES_ENABLED/$HOST.conf"
   sudo sed -i.bak "/$HOST/d" /etc/hosts
-  sudo nginx -s reload || true
-  echo "✅ Site $HOST removed."
+  restart_nginx
+  echo "✅ $HOST removed successfully"
   exit 0
+}
+
+if [[ "$REMOVE" == true ]]; then
+  remove_site
 fi
 
-# ==============================
-# Prepare project folder
-# ==============================
-if [[ ! -d "$PROJECTS_ROOT" ]]; then
-  mkdir -p "$PROJECTS_ROOT"
-  echo "📂 Created project root: $PROJECTS_ROOT"
-  echo "<?php phpinfo();" > "$PROJECTS_ROOT/index.php"
-else
-  echo "ℹ️  Folder $PROJECTS_ROOT already exists, using it."
+# Ensure dirs
+mkdir -p "$PROJECTS_ROOT" "$SITES_AVAILABLE" "$SITES_ENABLED"
+
+# Create project root if not exists
+if [[ ! -d "$SITE_ROOT" ]]; then
+  mkdir -p "$SITE_ROOT"
+  echo "📂 Created project root: $SITE_ROOT"
 fi
 
 # ==============================
