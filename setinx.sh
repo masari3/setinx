@@ -62,13 +62,14 @@ while [[ $# -gt 0 ]]; do
     --help) usage;;
     *) echo "❌ Unknown option: $1"; usage;;
   esac
-  shift
 done
 
-if [ -z "$HOST" ]; then
-    echo "⚠️  Host is required. Use -h or --host"
-    show_help
-    exit 1
+# ==============================
+# Validation
+# ==============================
+if [[ -z "$HOST" ]]; then
+  echo "❌ Error: --host is required"
+  usage
 fi
 
 # --------------------------
