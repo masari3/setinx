@@ -51,15 +51,60 @@ EOF
 # Parse args
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --host|-h) HOST="$2"; shift 2 ;;
-    --php|-p) USE_PHP=true; shift ;;
-    --php-tcp) USE_PHP=true; PHP_TCP="$2"; shift 2 ;;
-    --php-sock) USE_PHP=true; PHP_SOCK="$2"; shift 2 ;;
-    --ssl|-s) USE_SSL=true; shift ;;
-    --remove|-r) REMOVE=true; shift ;;
-    --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
-    --help) usage ;;
-    *) echo "❌ Unknown option: $1"; usage ;;
+    --host|-h)
+      HOST="$2"
+      shift 2
+      ;;
+    --php|-p)
+      USE_PHP=true
+      PHP_MODE="tcp"
+      PHP_TCP_PORT="9000"
+      shift 1
+      ;;
+    --php-tcp)
+      USE_PHP=true
+      PHP_MODE="tcp"
+      if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+        PHP_TCP_PORT="$2"
+        shift 2
+      else
+        PHP_TCP_PORT="9000"
+        shift 1
+      fi
+      ;;
+    --php-sock)
+      USE_PHP=true
+      PHP_MODE="sock"
+      PHP_SOCK_PATH="$2"
+      shift 2
+      ;;
+    --ssl|-s)
+      USE_SSL=true
+      shift 1
+      ;;
+    --remove|-r)
+      REMOVE=true
+      shift 1
+      ;;
+    --port|-P)
+      CUSTOM_PORT="$2"
+      shift 2
+      ;;
+    --linux)
+      OS="linux"
+      shift 1
+      ;;
+    --macos)
+      OS="macos"
+      shift 1
+      ;;
+    --help)
+      usage
+      ;;
+    *)
+      echo "❌ Unknown option: $1"
+      usage
+      ;;
   esac
 done
 
