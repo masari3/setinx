@@ -13,7 +13,7 @@ CUSTOM_PORT=""
 REMOVE=false
 PHP=false
 SSL=false
-ROOT_DIR_DEFAULT="$HOME/Projects/www"
+PROJECTS_DIR="$HOME/Projects/www"
 ROOT_DIR=""
 
 # --------------------------
