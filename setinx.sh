@@ -60,9 +60,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ==============================
-# Validation
-# ==============================
 if [[ -z "$HOST" ]]; then
   echo "❌ Error: --host is required"
   usage
@@ -104,14 +101,10 @@ if [[ ! -d "$SITE_ROOT" ]]; then
   echo "📂 Created project root: $SITE_ROOT"
 fi
 
-# ==============================
 # Add to /etc/hosts
-# ==============================
 if ! grep -q "$HOST" /etc/hosts; then
-  echo "127.0.0.1 $HOST" | sudo tee -a /etc/hosts > /dev/null
   echo "➕ Added $HOST to /etc/hosts"
-else
-  echo "ℹ️  $HOST already exists in /etc/hosts"
+  echo "127.0.0.1 $HOST" | sudo tee -a /etc/hosts >/dev/null
 fi
 
 # ==============================
