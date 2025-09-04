@@ -1,20 +1,18 @@
-#!/bin/bash
-# setupnginx.sh v1.0.4
+#!/usr/bin/env bash
+VERSION="1.0.6"
 
-set -e
-
-VERSION="1.0.4"
-OS=$(uname -s)
-
+# ==============================
 # Default values
-# --------------------------
-HOST=""
+# ==============================
+OS=""
+USE_PHP=false
+PHP_MODE="tcp"
+PHP_TCP_PORT="9000"
+PHP_SOCK_PATH=""
+USE_SSL=false
+REMOVE_MODE=false
 CUSTOM_PORT=""
-REMOVE=false
-PHP=false
-SSL=false
-PROJECTS_DIR="$HOME/Projects/www"
-ROOT_DIR=""
+HOST=""
 
 # --------------------------
 # Auto-detect OS
