@@ -184,14 +184,11 @@ fi
 # Enable site
 sudo ln -sf "$CONF_FILE" "$SITES_ENABLED/"
 
-# ==============================
-# Reload nginx
-# ==============================
-sudo nginx -t && sudo nginx -s reload
+# Test & restart
+sudo nginx -t
+restart_nginx
 
-# ==============================
-# Done
-# ==============================
+# Success message
 echo "🎉 Site setup complete!"
 echo "   URL: http://$HOST:$HTTP_PORT"
 if $USE_SSL; then
