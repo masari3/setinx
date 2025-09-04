@@ -155,17 +155,15 @@ if $USE_PHP; then
   if [[ "$PHP_MODE" == "tcp" ]]; then
     cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
     location ~ \.php\$ {
-        include fastcgi_params;
+        include fastcgi.conf;
         fastcgi_pass 127.0.0.1:$PHP_TCP_PORT;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 EOF
   else
     cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
     location ~ \.php\$ {
-        include fastcgi_params;
+        include fastcgi.conf;
         fastcgi_pass unix:$PHP_SOCK_PATH;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 EOF
   fi
@@ -176,10 +174,18 @@ echo "}" | sudo tee -a "$NGINX_CONFIG" > /dev/null
 if $USE_SSL; then
   mkcert -install
   mkcert "$HOST"
+
+  # Redirect HTTP -> HTTPS
   cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
 
 server {
-    listen $HTTPS_PORT ssl;
+    listen $HTTP_PORT;
+    server_name $HOST;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen $HTTPS_PORT ssl http2;
     server_name $HOST;
     root $PROJECTS_ROOT;
 
@@ -187,6 +193,9 @@ server {
     ssl_certificate_key $(pwd)/$HOST-key.pem;
 
     index index.php index.html index.htm;
+
+    access_log /var/log/nginx/${HOST}_ssl_access.log;
+    error_log  /var/log/nginx/${HOST}_ssl_error.log;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
@@ -197,17 +206,15 @@ EOF
     if [[ "$PHP_MODE" == "tcp" ]]; then
       cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
     location ~ \.php\$ {
-        include fastcgi_params;
+        include fastcgi.conf;
         fastcgi_pass 127.0.0.1:$PHP_TCP_PORT;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 EOF
     else
       cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
     location ~ \.php\$ {
-        include fastcgi_params;
+        include fastcgi.conf;
         fastcgi_pass unix:$PHP_SOCK_PATH;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 EOF
     fi
