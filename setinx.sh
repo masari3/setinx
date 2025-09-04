@@ -147,56 +147,38 @@ cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
 }
 EOF
 
-if $USE_SSL; then
-  mkcert -install
+# SSL
+if [[ "$USE_SSL" == true ]]; then
   mkcert "$HOST"
-
-  # Redirect HTTP -> HTTPS
-  cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
-
+  cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
 server {
-    listen $HTTP_PORT;
+    listen $HTTPS_PORT ssl;
     server_name $HOST;
-    return 301 https://\$host\$request_uri;
-}
+    root $SITE_ROOT;
 
-server {
-    listen $HTTPS_PORT ssl http2;
-    server_name $HOST;
-    root $PROJECTS_ROOT;
-
-    ssl_certificate     $(pwd)/$HOST.pem;
+    ssl_certificate $(pwd)/$HOST.pem;
     ssl_certificate_key $(pwd)/$HOST-key.pem;
 
     index index.php index.html index.htm;
-
-    access_log /var/log/nginx/${HOST}_ssl_access.log;
-    error_log  /var/log/nginx/${HOST}_ssl_error.log;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
 EOF
 
-  if $USE_PHP; then
-    if [[ "$PHP_MODE" == "tcp" ]]; then
-      cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
+  if [[ "$USE_PHP" == true ]]; then
+    cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
     location ~ \.php\$ {
-        include fastcgi.conf;
-        fastcgi_pass 127.0.0.1:$PHP_TCP_PORT;
+        include fastcgi_params;
+        fastcgi_pass $FASTCGI;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 EOF
-    else
-      cat <<EOF | sudo tee -a "$NGINX_CONFIG" > /dev/null
-    location ~ \.php\$ {
-        include fastcgi.conf;
-        fastcgi_pass unix:$PHP_SOCK_PATH;
-    }
-EOF
-    fi
   fi
 
-  echo "}" | sudo tee -a "$NGINX_CONFIG" > /dev/null
+  cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
+}
+EOF
 fi
 
 # ==============================
