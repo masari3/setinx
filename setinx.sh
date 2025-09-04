@@ -303,7 +303,7 @@ fi
 # --------------------------
 ln -sf "$CONF_FILE" "$ENABLED_FILE"
 
-# Create default index.html if non-PHP
+# Default index.html if non-PHP
 if [ "$PHP" != true ] && [ ! -f "$ROOT_DIR/index.html" ]; then
   echo "<h1>Hello from $HOST</h1>" > "$ROOT_DIR/index.html"
 fi
@@ -328,7 +328,7 @@ fi
 echo "🎉 Site setup complete!"
 echo "   URL: http://$HOST:$PORT_HTTP"
 if [ "$SSL" = true ]; then
-  echo "   HTTPS: https://$HOST"
+  echo "   HTTPS: https://$HOST:$PORT_HTTPS"
 fi
 echo "   Root: $ROOT_DIR"
 echo "   Config: $CONF_FILE"
