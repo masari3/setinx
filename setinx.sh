@@ -34,7 +34,7 @@ fi
 # --------------------------
 show_help() {
   cat <<EOF
-setupnginx.sh v$VERSION - Nginx dev server setup
+setupnginx.sh v$VERSION - Nginx development server setup
 
 Usage:
   $0 -h <domain> [options]
@@ -106,19 +106,17 @@ fi
 # --------------------------
 # Set ROOT_DIR
 # --------------------------
-# Ambil nama folder dari host, tanpa ekstensi .test/.dev/.local
 HOST_FOLDER_NAME=$(echo "$HOST" | sed -E 's/\.(test|dev|local)$//')
-
 DEFAULT_FOLDER="$PROJECTS_DIR/$HOST_FOLDER_NAME"
 
 if [ -z "$ROOT_DIR" ]; then
   if [ -d "$DEFAULT_FOLDER" ]; then
     ROOT_DIR="$DEFAULT_FOLDER"
-    echo "ℹ️  Folder $ROOT_DIR sudah ada, akan digunakan sebagai root"
+    echo "ℹ️  Folder $ROOT_DIR exists, will be used as root"
   else
     ROOT_DIR="$DEFAULT_FOLDER"
     mkdir -p "$ROOT_DIR"
-    echo "ℹ️  Folder $ROOT_DIR belum ada, dibuat baru"
+    echo "ℹ️  Folder $ROOT_DIR does not exist, created new"
   fi
 fi
 
@@ -176,7 +174,7 @@ mkdir -p "$SITES_AVAILABLE" "$SITES_ENABLED"
 # Detect public/ for PHP projects
 if [ "$PHP" = true ] && [ -d "$ROOT_DIR/public" ]; then
   ROOT_DIR="$ROOT_DIR/public"
-  echo "ℹ️  Detected public/ folder, root set ke $ROOT_DIR"
+  echo "ℹ️  Detected public/ folder, root set to $ROOT_DIR"
 fi
 
 # --------------------------
@@ -250,7 +248,7 @@ EOF
 fi
 
 # --------------------------
-# Add SSL block and HTTP → HTTPS redirect
+# SSL block + redirect
 # --------------------------
 if [ "$SSL" = true ]; then
 cat >> "$CONF_FILE" <<EOF
@@ -285,7 +283,6 @@ cat >> "$CONF_FILE" <<'EOF'
 EOF
 fi
 
-# HTTP redirect to HTTPS
 cat >> "$CONF_FILE" <<EOF
 }
 
@@ -295,7 +292,6 @@ server {
     return 301 https://\$server_name\$request_uri;
 }
 EOF
-
 fi
 
 # --------------------------
@@ -313,7 +309,7 @@ if ! grep -q "$HOST" /etc/hosts; then
   echo "127.0.0.1   $HOST" | sudo tee -a /etc/hosts >/dev/null
   echo "✅ Added $HOST to /etc/hosts"
 else
-  echo "ℹ️  $HOST sudah ada di /etc/hosts"
+  echo "ℹ️  $HOST already exists in /etc/hosts"
 fi
 
 # --------------------------
