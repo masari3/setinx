@@ -1,20 +1,19 @@
 #!/bin/bash
-# setupnginx.sh v1.0.7
-VERSION="1.0.7"
+# setupnginx.sh v1.0.8
+# Nginx virtual host setup helper for macOS & Linux
+# Author: masari x ChatGPT
 
-set -e
+VERSION="1.0.8"
 
-PROJECTS_ROOT="$HOME/Projects/www"
-NGINX_ETC="/usr/local/etc/nginx"
-SITES_AVAILABLE="$NGINX_ETC/sites-available"
-SITES_ENABLED="$NGINX_ETC/sites-enabled"
-
+# Default values
+OS=""
 USE_PHP=false
+PHP_MODE=""       # tcp / sock
+PHP_TCP_PORT=""   # tcp port number
+PHP_SOCK_PATH=""  # sock path
 USE_SSL=false
 REMOVE=false
 CUSTOM_PORT=""
-PHP_TCP=""
-PHP_SOCK=""
 HOST=""
 
 # Usage
