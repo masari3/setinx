@@ -41,7 +41,7 @@ Usage:
 
 Options:
   -h, --host     Domain / host name (required, e.g., laravel.test)
-  -p, --port     Custom port (default 80 HTTP / 443 HTTPS)
+  -p, --port     Custom port (default macOS: 8080/8443, Linux: 80/443)
   -r, --root     Custom root folder (default \$HOME/Projects/www/<host_name_without_domain>)
   -P, --php      Enable PHP-FPM
   -s, --ssl      Enable HTTPS with self-signed certificate and HTTP -> HTTPS redirect
