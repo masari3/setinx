@@ -159,7 +159,11 @@ if [ "$REMOVE" = true ]; then
     sudo sed -i.bak "/$HOST/d" /etc/hosts
     echo "✅ Removed $HOST from /etc/hosts"
   fi
-  nginx -s reload
+  if [[ "$OS_TYPE" == "macos" ]]; then
+    brew services restart nginx
+  else
+    sudo systemctl restart nginx
+  fi
   echo "🎉 Site $HOST removed!"
   exit 0
 fi
