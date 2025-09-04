@@ -132,12 +132,20 @@ SITES_ENABLED="$NGINX_DIR/sites-enabled"
 CONF_FILE="$SITES_AVAILABLE/$HOST.conf"
 ENABLED_FILE="$SITES_ENABLED/$HOST.conf"
 
-# Default ports
-PORT_HTTP=80
-PORT_HTTPS=443
+# --------------------------
+# Port defaults
+# --------------------------
 if [ -n "$CUSTOM_PORT" ]; then
   PORT_HTTP="$CUSTOM_PORT"
   PORT_HTTPS="$CUSTOM_PORT"
+else
+  if [[ "$OS_TYPE" == "macos" ]]; then
+    PORT_HTTP=8080
+    PORT_HTTPS=8443
+  else
+    PORT_HTTP=80
+    PORT_HTTPS=443
+  fi
 fi
 
 # --------------------------
