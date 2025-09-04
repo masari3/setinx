@@ -37,12 +37,12 @@ show_help() {
 setupnginx.sh v$VERSION - Nginx dev server setup
 
 Usage:
-  $0 -h <domain.test> [options]
+  $0 -h <domain> [options]
 
 Options:
-  -h, --host     Domain / host name (required)
+  -h, --host     Domain / host name (required, e.g., laravel.test)
   -p, --port     Custom port (default 80 HTTP / 443 HTTPS)
-  -r, --root     Custom root folder (default \$HOME/Projects/www/<host>)
+  -r, --root     Custom root folder (default \$HOME/Projects/www/<host_name_without_domain>)
   -P, --php      Enable PHP-FPM
   -s, --ssl      Enable HTTPS with self-signed certificate and HTTP -> HTTPS redirect
   -d, --remove   Remove site and its server block
@@ -56,16 +56,19 @@ Examples:
   $0 -h ci3.test -P
 
   # Static HTML site
-  $0 -h site.test
+  $0 -h site.local
 
   # Custom root folder
-  $0 -h custom.test -r \$HOME/Work/projectX
+  $0 -h custom.dev -r \$HOME/Work/projectX
 
   # Remove site
   $0 -h ci3.test -d
 
   # Custom port
   $0 -h laravel.test -P -s -p 8081
+
+  # Show help
+  $0 -H
 EOF
 }
 
