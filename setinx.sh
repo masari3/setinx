@@ -180,6 +180,15 @@ if [ "$PHP" = true ] && [ -d "$ROOT_DIR/public" ]; then
 fi
 
 # --------------------------
+# Ensure log folder exists
+# --------------------------
+if [[ "$OS_TYPE" == "macos" ]]; then
+  LOG_DIR="/usr/local/var/log/nginx"
+  mkdir -p "$LOG_DIR"
+  sudo chown -R $(whoami):staff "$LOG_DIR"
+fi
+
+# --------------------------
 # SSL setup
 # --------------------------
 if [ "$SSL" = true ]; then
