@@ -1,0 +1,12 @@
+{
+  "name": "setinx",
+  "version": "1.0.0",
+  "description": "Automated Nginx virtual host setup script for local development.",
+  "main": "setinx.sh",
+  "scripts": {
+    "release": "standard-version"
+  },
+  "devDependencies": {
+    "standard-version": "^9.5.0"
+  }
+}
