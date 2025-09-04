@@ -159,12 +159,12 @@ fi
 # --------------------------
 # ADD MODE
 # --------------------------
-mkdir -p "$SITES_AVAILABLE" "$SITES_ENABLED" "$ROOT_DIR"
+mkdir -p "$SITES_AVAILABLE" "$SITES_ENABLED"
 
 # Detect public/ for PHP projects
 if [ "$PHP" = true ] && [ -d "$ROOT_DIR/public" ]; then
   ROOT_DIR="$ROOT_DIR/public"
-  echo "ℹ️  Detected public/ folder, root set to $ROOT_DIR"
+  echo "ℹ️  Detected public/ folder, root set ke $ROOT_DIR"
 fi
 
 # --------------------------
