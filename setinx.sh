@@ -26,20 +26,24 @@ Usage:
 
 Options:
   --host, -h <domain>   Set hostname (required)
-  --php, -p             Enable PHP-FPM (default TCP 127.0.0.1:9000)
-  --php-tcp <port>      Use PHP-FPM via TCP (default: 127.0.0.1:9000)
+  --php, -p             Enable PHP-FPM (default TCP port 9000)
+  --php-tcp [port]      Use PHP-FPM via TCP (default: 127.0.0.1:9000 if port omitted)
   --php-sock <path>     Use PHP-FPM via Unix socket (e.g. /usr/local/var/run/php-fpm.sock)
-  --ssl, -s             Enable SSL with mkcert (force redirect to HTTPS)
+  --ssl, -s             Enable SSL and force redirect to HTTPS
   --remove, -r          Remove the site (config + hosts entry + project folder check)
   --port, -P <number>   Custom HTTP port (default: 80 / 443 with --ssl)
+  --linux               Force Linux mode
+  --macos               Force macOS mode
   --help                Show this help message
 
 Examples:
   ./setupnginx.sh --host myapp.test --php
-  ./setupnginx.sh --host myapp.test --php --ssl
-  ./setupnginx.sh --host myapp.test --php-tcp 9000
+  ./setupnginx.sh --host myapp.test --php-tcp
+  ./setupnginx.sh --host myapp.test --php-tcp 9070
   ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
+  ./setupnginx.sh --host myapp.test --php --ssl
   ./setupnginx.sh --host myapp.test --remove
+
 EOF
   exit 0
 }
