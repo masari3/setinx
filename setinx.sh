@@ -181,10 +181,8 @@ EOF
 EOF
 fi
 
-# ==============================
 # Enable site
-# ==============================
-sudo ln -sf "$NGINX_SITES_AVAILABLE/$HOST.conf" "$NGINX_SITES_ENABLED/$HOST.conf"
+sudo ln -sf "$CONF_FILE" "$SITES_ENABLED/"
 
 # ==============================
 # Reload nginx
