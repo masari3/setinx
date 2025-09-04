@@ -39,22 +39,18 @@ EOF
   exit 0
 }
 
-# ==============================
-# Parse Arguments
-# ==============================
+# Parse args
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --host|-h) HOST="$2"; shift 2;;
-    --php|-p) USE_PHP=true; shift;;
-    --php-tcp) USE_PHP=true; PHP_MODE="tcp"; PHP_TCP_PORT="${2:-9000}"; shift 2;;
-    --php-sock) USE_PHP=true; PHP_MODE="sock"; PHP_SOCK_PATH="$2"; shift 2;;
-    --ssl|-s) USE_SSL=true; shift;;
-    --remove|-r) REMOVE_MODE=true; shift;;
-    --port|-P) CUSTOM_PORT="$2"; shift 2;;
-    --linux) OS="linux"; shift;;
-    --macos) OS="macos"; shift;;
-    --help) usage;;
-    *) echo "❌ Unknown option: $1"; usage;;
+    --host|-h) HOST="$2"; shift 2 ;;
+    --php|-p) USE_PHP=true; shift ;;
+    --php-tcp) USE_PHP=true; PHP_TCP="$2"; shift 2 ;;
+    --php-sock) USE_PHP=true; PHP_SOCK="$2"; shift 2 ;;
+    --ssl|-s) USE_SSL=true; shift ;;
+    --remove|-r) REMOVE=true; shift ;;
+    --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
+    --help) usage ;;
+    *) echo "❌ Unknown option: $1"; usage ;;
   esac
 done
 
