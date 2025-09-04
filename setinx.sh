@@ -1,22 +1,23 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# setupnginx.sh v1.0.7
 VERSION="1.0.7"
 
-# ==============================
-# Default values
-# ==============================
-OS=""
+set -e
+
+PROJECTS_ROOT="$HOME/Projects/www"
+NGINX_ETC="/usr/local/etc/nginx"
+SITES_AVAILABLE="$NGINX_ETC/sites-available"
+SITES_ENABLED="$NGINX_ETC/sites-enabled"
+
 USE_PHP=false
-PHP_MODE="tcp"
-PHP_TCP_PORT="9000"
-PHP_SOCK_PATH=""
 USE_SSL=false
-REMOVE_MODE=false
+REMOVE=false
 CUSTOM_PORT=""
+PHP_TCP=""
+PHP_SOCK=""
 HOST=""
 
-# ==============================
 # Usage
-# ==============================
 usage() {
   cat <<EOF
 setupnginx.sh v$VERSION
@@ -25,16 +26,21 @@ Usage:
   ./setupnginx.sh --host <domain> [options]
 
 Options:
-  --host, -h <domain>    Set hostname (required)
-  --php, -p              Enable PHP-FPM (default TCP 127.0.0.1:9000)
-  --php-tcp <port>       Use PHP-FPM via TCP (custom port, default 9000)
-  --php-sock <path>      Use PHP-FPM via Unix socket
-  --ssl, -s              Enable SSL (mkcert) and redirect HTTP -> HTTPS
-  --remove, -r           Remove the site (nginx config + hosts entry)
-  --port, -P <number>    Custom HTTP port (default 80, or 443 with --ssl)
-  --linux                Force Linux mode
-  --macos                Force macOS mode
-  --help                 Show this help message
+  --host, -h <domain>   Set hostname (required)
+  --php, -p             Enable PHP-FPM (default TCP 127.0.0.1:9000)
+  --php-tcp <port>      Use PHP-FPM via TCP (default: 127.0.0.1:9000)
+  --php-sock <path>     Use PHP-FPM via Unix socket (e.g. /usr/local/var/run/php-fpm.sock)
+  --ssl, -s             Enable SSL with mkcert (force redirect to HTTPS)
+  --remove, -r          Remove the site (config + hosts entry + project folder check)
+  --port, -P <number>   Custom HTTP port (default: 80 / 443 with --ssl)
+  --help                Show this help message
+
+Examples:
+  ./setupnginx.sh --host myapp.test --php
+  ./setupnginx.sh --host myapp.test --php --ssl
+  ./setupnginx.sh --host myapp.test --php-tcp 9000
+  ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
+  ./setupnginx.sh --host myapp.test --remove
 EOF
   exit 0
 }
