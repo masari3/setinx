@@ -1,7 +1,7 @@
 #!/bin/bash
-# setupnginx.sh v1.0.9
+# setupnginx.sh v1.1.0
 
-VERSION="1.0.9"
+VERSION="1.1.0"
 PROJECTS_DIR="$HOME/Projects/www"
 NGINX_SITES_AVAILABLE="/usr/local/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
