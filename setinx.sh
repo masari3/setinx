@@ -152,14 +152,9 @@ if [[ "$REMOVE" == true ]]; then
   exit 0
 fi
 
-# Ensure dirs
-mkdir -p "$PROJECTS_ROOT" "$SITES_AVAILABLE" "$SITES_ENABLED"
-
-# Create project root if not exists
-if [[ ! -d "$SITE_ROOT" ]]; then
-  mkdir -p "$SITE_ROOT"
-  echo "📂 Created project root: $SITE_ROOT"
-fi
+# Create dirs
+mkdir -p "$PROJECT_ROOT"
+echo "📂 Created project root: $PROJECT_ROOT"
 
 # Add to /etc/hosts
 if ! grep -q "$HOST" /etc/hosts; then
