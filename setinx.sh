@@ -128,7 +128,10 @@ if [[ "$SSL" == true ]]; then
     esac
   else
     CERT_DIR=$(mkcert -CAROOT)
-    [[ ! -f "$CERT_DIR/$HOST.pem" ]] && mkcert "$HOST"
+    if [[ ! -f "$CERT_DIR/$HOST.pem" ]]; then
+      echo "🔐 Generating certificate for $HOST..."
+      mkcert "$HOST"
+    fi
     CERT_LINE="ssl_certificate $CERT_DIR/$HOST.pem;
     ssl_certificate_key $CERT_DIR/$HOST-key.pem;"
     SSL_LISTEN="listen 443 ssl;"
