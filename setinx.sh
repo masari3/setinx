@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
     --php|-p) PHP=true; shift ;;
     --php-tcp) PHP=true; PHP_TCP=true; PHP_TCP_PORT="$2"; 
                if [[ "$PHP_TCP_PORT" =~ ^[0-9]+$ ]]; then shift 2; else PHP_TCP_PORT="9000"; shift; fi ;;
-    --php-sock) PHP=true; PHP_SOCK="$2"; shift 2 ;;
+    --php-sock) PHP=true; PHP_SOCK_PATH="$2"; shift 2 ;;
     --ssl|-s) SSL=true; shift ;;
     --remove|-r) REMOVE=true; shift ;;
     --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
