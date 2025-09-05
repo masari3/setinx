@@ -179,22 +179,15 @@ test_php_fpm() {
 
 # --- Remove site ---
 if [[ "$REMOVE" == true ]]; then
-  if [[ -f "$CONF_PATH" ]]; then
-    echo "🗑 Removing site $HOST..."
-    sudo rm -f "$CONF_PATH"
-  fi
-  if [[ -L "$LINK_PATH" ]]; then
-    sudo rm -f "$LINK_PATH"
-  fi
-  sudo sed -i.bak "/[[:space:]]$HOST$/d" /etc/hosts
-  echo "ℹ️ Project folder exists: $ROOT"
-  echo "🔄 Restarting Nginx..."
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    brew services restart nginx
-  else
-    sudo systemctl restart nginx || sudo service nginx restart
-  fi
-  echo "✅ $HOST removed successfully"
+  echo "🗑   Removing site $HOST..."
+  backup_hosts
+  [[ -f "$CONF_PATH" ]] && sudo rm -f "$CONF_PATH"
+  [[ -L "$LINK_PATH" ]] && sudo rm -f "$LINK_PATH"
+  sudo sed -i.bak "/[[:space:]]$HOST$/d" "$HOSTS_FILE"
+  echo "ℹ️   Project folder: $ROOT"
+  echo "🔄  Restarting Nginx..."
+  brew services restart nginx
+  echo "✅  $HOST removed successfully"
   exit 0
 fi
 
