@@ -35,11 +35,11 @@ EOF
   exit 0
 }
 
-# --- Parse args ---
+# --- Parse arguments ---
 HOST=""
 PHP=false
 PHP_TCP=false
-PHP_TCP_PORT=""
+PHP_TCP_PORT="9000"
 PHP_SOCK_PATH=""
 SSL=false
 REMOVE=false
@@ -48,15 +48,16 @@ CUSTOM_PORT=""
 while [[ $# -gt 0 ]]; do
   case $1 in
     --host|-h) HOST="$2"; shift 2 ;;
-    --php|-p) PHP=true; shift ;;
-    --php-tcp) PHP=true; PHP_TCP=true; PHP_TCP_PORT="$2"; 
-               if [[ "$PHP_TCP_PORT" =~ ^[0-9]+$ ]]; then shift 2; else PHP_TCP_PORT="9000"; shift; fi ;;
+    --project-name|-n) PROJECT_NAME="$2"; shift 2 ;;
+    --php|-p) PHP=true; PHP_TCP=true; shift ;; # Default to TCP 9000
+    --php-tcp) PHP=true; PHP_TCP=true; PHP_TCP_PORT="$2";
+               if [[ ! "$PHP_TCP_PORT" =~ ^[0-9]+$ ]]; then PHP_TCP_PORT="9000"; fi; shift $(( $#>=2 ? 2 : 1 )) ;;
     --php-sock) PHP=true; PHP_SOCK_PATH="$2"; shift 2 ;;
     --ssl|-s) SSL=true; shift ;;
     --remove|-r) REMOVE=true; shift ;;
     --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
     --help) usage ;;
-    *) echo "Unknown option: $1"; usage ;;
+    *) echo "❌  Unknown option: $1"; usage ;;
   esac
 done
 
@@ -65,7 +66,13 @@ if [[ -z "$HOST" ]]; then
   usage
 fi
 
-ROOT="$PROJECTS_DIR/$HOST"
+# --- Determine project folder name ---
+if [[ -z "$PROJECT_NAME" ]]; then
+  PROJECT_NAME="${HOST%%.*}"
+  echo "ℹ️   Using default project name: $PROJECT_NAME"
+fi
+
+ROOT="$PROJECTS_DIR/$PROJECT_NAME"
 CONF_PATH="$NGINX_SITES_AVAILABLE/$HOST.conf"
 LINK_PATH="$NGINX_SITES_ENABLED/$HOST.conf"
 
