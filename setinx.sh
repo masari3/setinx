@@ -69,13 +69,21 @@ LINK_PATH="$NGINX_SITES_ENABLED/$HOST.conf"
 
 # --- Remove site ---
 if [[ "$REMOVE" == true ]]; then
-  echo "🗑 Removing site $HOST..."
-  [[ -f "$CONF_PATH" ]] && sudo rm -f "$CONF_PATH"
-  [[ -L "$LINK_PATH" ]] && sudo rm -f "$LINK_PATH"
+  if [[ -f "$CONF_PATH" ]]; then
+    echo "🗑 Removing site $HOST..."
+    sudo rm -f "$CONF_PATH"
+  fi
+  if [[ -L "$LINK_PATH" ]]; then
+    sudo rm -f "$LINK_PATH"
+  fi
   sudo sed -i.bak "/[[:space:]]$HOST$/d" /etc/hosts
-  [[ -d "$ROOT" ]] && echo "ℹ️ Project folder exists: $ROOT"
+  echo "ℹ️ Project folder exists: $ROOT"
   echo "🔄 Restarting Nginx..."
-  sudo brew services restart nginx
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    brew services restart nginx
+  else
+    sudo systemctl restart nginx || sudo service nginx restart
+  fi
   echo "✅ $HOST removed successfully"
   exit 0
 fi
