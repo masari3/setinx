@@ -1,7 +1,7 @@
 #!/bin/bash
-# setupnginx.sh v1.1.0
+# setupnginx.sh v1.1.10
 
-VERSION="1.1.0"
+VERSION="1.1.10"
 PROJECTS_DIR="$HOME/Projects/www"
 NGINX_SITES_AVAILABLE="/usr/local/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
@@ -27,6 +27,7 @@ Examples:
   ./setupnginx.sh --host myapp.test --php
   ./setupnginx.sh --host myapp.test --php --ssl
   ./setupnginx.sh --host myapp.test --php-tcp 9100 --ssl
+  ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
   ./setupnginx.sh --host myapp.test --remove
 EOF
   exit 0
@@ -37,7 +38,7 @@ HOST=""
 PHP=false
 PHP_TCP=false
 PHP_TCP_PORT=""
-PHP_SOCK=""
+PHP_SOCK_PATH=""
 SSL=false
 REMOVE=false
 CUSTOM_PORT=""
