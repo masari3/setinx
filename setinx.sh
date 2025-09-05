@@ -150,10 +150,10 @@ if [[ "$PHP" == true ]]; then
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }"
   else
-    SOCK="${PHP_SOCK:-/tmp/php-fpm.sock}"
+    SOCKET_PATH="${PHP_SOCK_PATH:-/tmp/php-fpm.sock}"
     PHP_BLOCK="location ~ \.php\$ {
         include fastcgi_params;
-        fastcgi_pass unix:$SOCK;
+        fastcgi_pass unix:$SOCKET_PATH;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }"
   fi
@@ -193,7 +193,11 @@ if ! sudo nginx -t; then
   echo "❌ Error: nginx configuration test failed"
   exit 1
 fi
-sudo brew services restart nginx
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  brew services restart nginx
+else
+  sudo systemctl restart nginx || sudo service nginx restart
+fi
 
 # --- Final output ---
 echo "🎉 Site setup complete!"
