@@ -199,6 +199,21 @@ else
   echo "ℹ️ Project folder exists: $ROOT"
 fi
 
+# --- Simple Auto-detect web root folder ---
+if [[ -d "$ROOT/public" ]]; then
+  WEB_ROOT="$ROOT/public"
+  echo "🌐  Detected Laravel-like structure, using web root: $WEB_ROOT"
+else
+  WEB_ROOT="$ROOT"
+  echo "🌐  Using project root as web root: $WEB_ROOT"
+fi
+
+# --- Check PHP-FPM before proceeding ---
+check_php_fpm
+
+# --- Fix permissions for CodeIgniter ---
+fix_permissions
+
 # --- Add to /etc/hosts ---
 if ! grep -q "$HOST" /etc/hosts; then
   echo "➕ Added $HOST to /etc/hosts"
