@@ -258,6 +258,6 @@ $NGINX_BIN
 
 # Final info
 echo "🎉 Site setup complete!"
-echo "   URL: http://$HOST:$HTTP_PORT"
-echo "   Root: $SITE_ROOT"
-echo "   Config: $CONF_FILE"
+echo "   URL: http://$HOST:$LISTEN_PORT"
+echo "   Root: $PROJECT_ROOT"
+echo "   Config: $CONFIG_FILE"
