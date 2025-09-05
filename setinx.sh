@@ -17,6 +17,7 @@ Options:
   --host, -h       Set the hostname (e.g. project.test)
   --php, -p        Enable PHP-FPM (auto-detect root/public, socket or TCP)
   --php-tcp [port] Enable PHP-FPM via TCP (default: 9000, or custom port)
+  --php-sock [path] Enable PHP-FPM via Unix socket (default: /tmp/php-fpm.sock)
   --ssl, -s        Enable SSL with mkcert (force redirect to HTTPS)
   --remove, -r     Remove the site (config + hosts entry + project folder check)
   --port, -P       Custom HTTP port (default: 80,443 with SSL)
@@ -36,6 +37,7 @@ HOST=""
 PHP=false
 PHP_TCP=false
 PHP_TCP_PORT=""
+PHP_SOCK=""
 SSL=false
 REMOVE=false
 CUSTOM_PORT=""
@@ -46,6 +48,7 @@ while [[ $# -gt 0 ]]; do
     --php|-p) PHP=true; shift ;;
     --php-tcp) PHP=true; PHP_TCP=true; PHP_TCP_PORT="$2"; 
                if [[ "$PHP_TCP_PORT" =~ ^[0-9]+$ ]]; then shift 2; else PHP_TCP_PORT="9000"; shift; fi ;;
+    --php-sock) PHP=true; PHP_SOCK="$2"; shift 2 ;;
     --ssl|-s) SSL=true; shift ;;
     --remove|-r) REMOVE=true; shift ;;
     --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
@@ -140,9 +143,10 @@ if [[ "$PHP" == true ]]; then
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }"
   else
+    SOCK="${PHP_SOCK:-/tmp/php-fpm.sock}"
     PHP_BLOCK="location ~ \.php\$ {
         include fastcgi_params;
-        fastcgi_pass unix:/tmp/php-fpm.sock;
+        fastcgi_pass unix:$SOCK;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }"
   fi
