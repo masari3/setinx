@@ -117,8 +117,14 @@ if [[ "$SSL" == true ]]; then
     fi
     read -p "SSL dependencies missing. Continue without SSL? (y/N): " choice
     case "$choice" in
-      y|Y ) echo "⚠️  Continuing without SSL..."; SSL=false ;;
-      * ) echo "❌ Aborting setup."; exit 1 ;;
+      y|Y )
+        echo "⚠️  Continuing without SSL..."
+        SSL=false
+        ;;
+      * )
+        echo "❌ Aborting setup."
+        exit 1
+        ;;
     esac
   else
     CERT_DIR=$(mkcert -CAROOT)
