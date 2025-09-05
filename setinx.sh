@@ -62,21 +62,20 @@ if [[ -z "$HOST" ]]; then
   usage
 fi
 
-ROOT="$PROJECTS_DIR/$HOST"
+# --- Determine project root (strip .test/.local/.dev) ---
+PROJECT_NAME=$(echo "$HOST" | sed -E 's/\.(test|local|dev)$//')
+ROOT="$PROJECTS_DIR/$PROJECT_NAME"
+
 CONF_PATH="$NGINX_SITES_AVAILABLE/$HOST.conf"
 LINK_PATH="$NGINX_SITES_ENABLED/$HOST.conf"
 
 # --- Remove site ---
 if [[ "$REMOVE" == true ]]; then
-  if [[ -f "$CONF_PATH" ]]; then
-    echo "🗑 Removing site $HOST..."
-    sudo rm -f "$CONF_PATH"
-  fi
-  if [[ -L "$LINK_PATH" ]]; then
-    sudo rm -f "$LINK_PATH"
-  fi
+  echo "🗑 Removing site $HOST..."
+  [[ -f "$CONF_PATH" ]] && sudo rm -f "$CONF_PATH"
+  [[ -L "$LINK_PATH" ]] && sudo rm -f "$LINK_PATH"
   sudo sed -i.bak "/[[:space:]]$HOST$/d" /etc/hosts
-  echo "ℹ️ Project folder exists: $ROOT"
+  [[ -d "$ROOT" ]] && echo "ℹ️ Project folder exists: $ROOT"
   echo "🔄 Restarting Nginx..."
   sudo brew services restart nginx
   echo "✅ $HOST removed successfully"
@@ -87,6 +86,8 @@ fi
 if [[ ! -d "$ROOT" ]]; then
   mkdir -p "$ROOT"
   echo "📂 Created project root: $ROOT"
+else
+  echo "ℹ️ Project folder exists: $ROOT"
 fi
 
 # --- Add to /etc/hosts ---
