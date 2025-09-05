@@ -1,22 +1,11 @@
 #!/bin/bash
-# setupnginx.sh v1.0.8
-# Nginx virtual host setup helper for macOS & Linux
-# Author: masari x ChatGPT
+# setupnginx.sh v1.0.9
 
-VERSION="1.0.8"
+VERSION="1.0.9"
+PROJECTS_DIR="$HOME/Projects/www"
+NGINX_SITES_AVAILABLE="/usr/local/etc/nginx/sites-available"
+NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
 
-# Default values
-OS=""
-USE_PHP=false
-PHP_MODE=""       # tcp / sock
-PHP_TCP_PORT=""   # tcp port number
-PHP_SOCK_PATH=""  # sock path
-USE_SSL=false
-REMOVE=false
-CUSTOM_PORT=""
-HOST=""
-
-# Usage
 usage() {
   cat <<EOF
 setupnginx.sh v$VERSION
@@ -25,239 +14,182 @@ Usage:
   ./setupnginx.sh --host <domain> [options]
 
 Options:
-  --host, -h <domain>   Set hostname (required)
-  --php, -p             Enable PHP-FPM (default TCP port 9000)
-  --php-tcp [port]      Use PHP-FPM via TCP (default: 127.0.0.1:9000 if port omitted)
-  --php-sock <path>     Use PHP-FPM via Unix socket (e.g. /usr/local/var/run/php-fpm.sock)
-  --ssl, -s             Enable SSL and force redirect to HTTPS
-  --remove, -r          Remove the site (config + hosts entry + project folder check)
-  --port, -P <number>   Custom HTTP port (default: 80 / 443 with --ssl)
-  --linux               Force Linux mode
-  --macos               Force macOS mode
-  --help                Show this help message
+  --host, -h       Set the hostname (e.g. project.test)
+  --php, -p        Enable PHP-FPM (auto-detect root/public, socket or TCP)
+  --php-tcp [port] Enable PHP-FPM via TCP (default: 9000, or custom port)
+  --ssl, -s        Enable SSL with mkcert (force redirect to HTTPS)
+  --remove, -r     Remove the site (config + hosts entry + project folder check)
+  --port, -P       Custom HTTP port (default: 80,443 with SSL)
+  --help           Show this help message
 
 Examples:
   ./setupnginx.sh --host myapp.test --php
-  ./setupnginx.sh --host myapp.test --php-tcp
-  ./setupnginx.sh --host myapp.test --php-tcp 9070
-  ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
   ./setupnginx.sh --host myapp.test --php --ssl
+  ./setupnginx.sh --host myapp.test --php-tcp 9100 --ssl
   ./setupnginx.sh --host myapp.test --remove
-
 EOF
   exit 0
 }
 
-# Parse args
+# --- Parse args ---
+HOST=""
+PHP=false
+PHP_TCP=false
+PHP_TCP_PORT=""
+SSL=false
+REMOVE=false
+CUSTOM_PORT=""
+
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --host|-h)
-      HOST="$2"
-      shift 2
-      ;;
-    --php|-p)
-      USE_PHP=true
-      PHP_MODE="tcp"
-      PHP_TCP_PORT="9000"
-      shift 1
-      ;;
-    --php-tcp)
-      USE_PHP=true
-      PHP_MODE="tcp"
-      if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
-        PHP_TCP_PORT="$2"
-        shift 2
-      else
-        PHP_TCP_PORT="9000"
-        shift 1
-      fi
-      ;;
-    --php-sock)
-      USE_PHP=true
-      PHP_MODE="sock"
-      PHP_SOCK_PATH="$2"
-      shift 2
-      ;;
-    --ssl|-s)
-      USE_SSL=true
-      shift 1
-      ;;
-    --remove|-r)
-      REMOVE=true
-      shift 1
-      ;;
-    --port|-P)
-      CUSTOM_PORT="$2"
-      shift 2
-      ;;
-    --linux)
-      OS="linux"
-      shift 1
-      ;;
-    --macos)
-      OS="macos"
-      shift 1
-      ;;
-    --help)
-      usage
-      ;;
-    *)
-      echo "❌ Unknown option: $1"
-      usage
-      ;;
+  case $1 in
+    --host|-h) HOST="$2"; shift 2 ;;
+    --php|-p) PHP=true; shift ;;
+    --php-tcp) PHP=true; PHP_TCP=true; PHP_TCP_PORT="$2"; 
+               if [[ "$PHP_TCP_PORT" =~ ^[0-9]+$ ]]; then shift 2; else PHP_TCP_PORT="9000"; shift; fi ;;
+    --ssl|-s) SSL=true; shift ;;
+    --remove|-r) REMOVE=true; shift ;;
+    --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
+    --help) usage ;;
+    *) echo "Unknown option: $1"; usage ;;
   esac
 done
 
 if [[ -z "$HOST" ]]; then
-  echo "❌ Error: --host is required"
+  echo "❌ Error: --host is required."
   usage
 fi
 
-# Detect OS if not forced
-if [[ -z "$OS" ]]; then
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macos"
-  else
-    OS="linux"
-  fi
-fi
+ROOT="$PROJECTS_DIR/$HOST"
+CONF_PATH="$NGINX_SITES_AVAILABLE/$HOST.conf"
+LINK_PATH="$NGINX_SITES_ENABLED/$HOST.conf"
 
-# Paths
-if [[ "$OS" == "macos" ]]; then
-  NGINX_CONF_DIR="/usr/local/etc/nginx"
-  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/servers"
-  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/servers"
-  NGINX_BIN="brew services restart nginx"
-else
-  NGINX_CONF_DIR="/etc/nginx"
-  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/sites-available"
-  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/sites-enabled"
-  NGINX_BIN="systemctl restart nginx"
-fi
-
-PROJECTS_DIR="$HOME/Projects/www"
-PROJECT_ROOT="$PROJECTS_DIR/$HOST"
-CONFIG_FILE="$NGINX_SITES_AVAILABLE/$HOST.conf"
-
-# Remove site
+# --- Remove site ---
 if [[ "$REMOVE" == true ]]; then
-  if [[ -d "$PROJECT_ROOT" ]]; then
-    echo "ℹ️ Project folder exists: $PROJECT_ROOT"
+  if [[ -f "$CONF_PATH" ]]; then
+    echo "🗑 Removing site $HOST..."
+    sudo rm -f "$CONF_PATH"
   fi
-  echo "🗑 Removing site $HOST..."
-  sudo rm -f "$CONFIG_FILE"
-  sudo sed -i.bak "/$HOST/d" /etc/hosts
-  $NGINX_BIN
+  if [[ -L "$LINK_PATH" ]]; then
+    sudo rm -f "$LINK_PATH"
+  fi
+  sudo sed -i.bak "/[[:space:]]$HOST$/d" /etc/hosts
+  echo "ℹ️ Project folder exists: $ROOT"
+  echo "🔄 Restarting Nginx..."
+  sudo brew services restart nginx
   echo "✅ $HOST removed successfully"
   exit 0
 fi
 
-# Create dirs
-mkdir -p "$PROJECT_ROOT"
-echo "📂 Created project root: $PROJECT_ROOT"
+# --- Create project folder ---
+if [[ ! -d "$ROOT" ]]; then
+  mkdir -p "$ROOT"
+  echo "📂 Created project root: $ROOT"
+fi
 
-# Add to hosts
+# --- Add to /etc/hosts ---
 if ! grep -q "$HOST" /etc/hosts; then
   echo "➕ Added $HOST to /etc/hosts"
   echo "127.0.0.1 $HOST" | sudo tee -a /etc/hosts >/dev/null
 fi
 
-# Listen port
-if [[ -n "$CUSTOM_PORT" ]]; then
-  LISTEN_PORT="$CUSTOM_PORT"
-else
-  LISTEN_PORT="80"
-fi
-LISTEN_SSL_PORT="443"
+# --- SSL handling ---
+CERT_LINE=""
+SSL_LISTEN=""
+SSL_REDIRECT=""
 
-# Generate config
-CONF="server {
-    listen $LISTEN_PORT;
-    server_name $HOST;
-    root $PROJECT_ROOT;
-    index index.php index.html index.htm;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-"
-
-if [[ "$USE_PHP" == true ]]; then
-  CONF+="
-    location ~ \.php\$ {
-        include fastcgi_params;
-"
-  if [[ "$PHP_MODE" == "tcp" ]]; then
-    CONF+="        fastcgi_pass 127.0.0.1:${PHP_TCP_PORT};
-"
-  elif [[ "$PHP_MODE" == "sock" ]]; then
-    CONF+="        fastcgi_pass unix:${PHP_SOCK_PATH};
-"
-  fi
-  CONF+="        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    }
-"
-fi
-
-CONF+="}
-"
-
-# SSL block
-if [[ "$USE_SSL" == true ]]; then
-  CONF="server {
-    listen 80;
-    server_name $HOST;
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name $HOST;
-    root $PROJECT_ROOT;
-    index index.php index.html index.htm;
-
-    ssl_certificate $(mkcert -CAROOT)/$HOST.pem;
-    ssl_certificate_key $(mkcert -CAROOT)/$HOST-key.pem;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-"
-
-  if [[ "$USE_PHP" == true ]]; then
-    CONF+="
-    location ~ \.php\$ {
-        include fastcgi_params;
-"
-    if [[ "$PHP_MODE" == "tcp" ]]; then
-      CONF+="        fastcgi_pass 127.0.0.1:${PHP_TCP_PORT};
-"
-    elif [[ "$PHP_MODE" == "sock" ]]; then
-      CONF+="        fastcgi_pass unix:${PHP_SOCK_PATH};
-"
+if [[ "$SSL" == true ]]; then
+  if ! command -v mkcert >/dev/null 2>&1; then
+    echo "❌ mkcert not found."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      echo "👉 Install with: brew install mkcert nss && mkcert -install"
+    else
+      echo "👉 Install with: sudo apt install mkcert && mkcert -install"
     fi
-    CONF+="        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    }
-"
+    read -p "SSL dependencies missing. Continue without SSL? (y/N): " choice
+    case "$choice" in
+      y|Y )
+        echo "⚠️  Continuing without SSL..."
+        SSL=false
+        ;;
+      * )
+        echo "❌ Aborting setup."
+        exit 1
+        ;;
+    esac
+  else
+    CERT_DIR=$(mkcert -CAROOT)
+    if [[ ! -f "$CERT_DIR/$HOST.pem" ]]; then
+      echo "🔐 Generating certificate for $HOST..."
+      mkcert "$HOST"
+    fi
+    CERT_LINE="ssl_certificate $CERT_DIR/$HOST.pem;
+    ssl_certificate_key $CERT_DIR/$HOST-key.pem;"
+    SSL_LISTEN="listen 443 ssl;"
+    SSL_REDIRECT="if (\$scheme = http) { return 301 https://\$host\$request_uri; }"
   fi
-
-  CONF+="}
-"
 fi
 
-# Save config
-echo "$CONF" | sudo tee "$CONFIG_FILE" >/dev/null
+# --- Build PHP block ---
+PHP_BLOCK=""
+if [[ "$PHP" == true ]]; then
+  if [[ "$PHP_TCP" == true ]]; then
+    PORT="${PHP_TCP_PORT:-9000}"
+    PHP_BLOCK="location ~ \.php\$ {
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:$PORT;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }"
+  else
+    PHP_BLOCK="location ~ \.php\$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/tmp/php-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }"
+  fi
+fi
 
-# Restart Nginx
+# --- Custom ports ---
+HTTP_PORT="${CUSTOM_PORT:-80}"
+
+# --- Write config ---
+sudo mkdir -p "$NGINX_SITES_AVAILABLE" "$NGINX_SITES_ENABLED"
+cat <<EOF | sudo tee "$CONF_PATH" >/dev/null
+server {
+    listen $HTTP_PORT;
+    $SSL_LISTEN
+    server_name $HOST;
+    root $ROOT;
+
+    index index.php index.html index.htm;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    $PHP_BLOCK
+
+    $SSL_REDIRECT
+    $CERT_LINE
+}
+EOF
+
+# --- Symlink ---
+sudo ln -sf "$CONF_PATH" "$LINK_PATH"
+
+# --- Restart nginx ---
 echo "🔄 Restarting Nginx..."
 if ! sudo nginx -t; then
   echo "❌ Error: nginx configuration test failed"
   exit 1
 fi
-$NGINX_BIN
+sudo brew services restart nginx
 
-# Final info
+# --- Final output ---
 echo "🎉 Site setup complete!"
-echo "   URL: http://$HOST:$LISTEN_PORT"
-echo "   Root: $PROJECT_ROOT"
-echo "   Config: $CONFIG_FILE"
+if [[ "$SSL" == true ]]; then
+  echo "   URL: https://$HOST"
+else
+  echo "   URL: http://$HOST:$HTTP_PORT"
+fi
+echo "   Root: $ROOT"
+echo "   Config: $CONF_PATH"
