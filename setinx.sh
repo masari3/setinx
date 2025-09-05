@@ -75,6 +75,107 @@ fi
 ROOT="$PROJECTS_DIR/$PROJECT_NAME"
 CONF_PATH="$NGINX_SITES_AVAILABLE/$HOST.conf"
 LINK_PATH="$NGINX_SITES_ENABLED/$HOST.conf"
+HTTP_PORT="${CUSTOM_PORT:-80}"
+
+# --- Function: Backup hosts ---
+backup_hosts() {
+  if [[ -f "$HOSTS_FILE" ]]; then
+    sudo cp "$HOSTS_FILE" "$HOSTS_BACKUP"
+    echo "💾  Backup hosts file created at $HOSTS_BACKUP"
+  fi
+}
+
+# --- Check PHP-FPM Status ---
+check_php_fpm() {
+    if [[ "$PHP" == true ]]; then
+        echo "🔍  Checking PHP-FPM status..."
+        
+        if [[ "$PHP_TCP" == true ]]; then
+            PORT="${PHP_TCP_PORT:-9000}"
+            if lsof -i:$PORT >/dev/null 2>&1; then
+                echo "✅  PHP-FPM is running on TCP port $PORT"
+            else
+                echo "❌  ERROR: PHP-FPM is NOT running on TCP port $PORT"
+                echo "    Please start PHP-FPM: brew services start php"
+                exit 1
+            fi
+        else
+            SOCK_PATH="${PHP_SOCK_PATH:-/tmp/php-fpm.sock}"
+            if [[ -S "$SOCK_PATH" ]]; then
+                echo "✅  PHP-FPM socket found: $SOCK_PATH"
+            else
+                echo "❌  ERROR: PHP-FPM socket NOT found: $SOCK_PATH"
+                echo "    Please start PHP-FPM: brew services start php"
+                exit 1
+            fi
+        fi
+    fi
+}
+
+# --- Fix Permissions ---
+fix_permissions() {
+    echo "🔧  Fixing file permissions..."
+    
+    # Set ownership to user
+    sudo chown -R $(whoami):staff "$ROOT"
+    
+    # Set appropriate permissions
+    find "$ROOT" -type d -exec chmod 755 {} \;
+    find "$ROOT" -type f -exec chmod 644 {} \;
+    
+    # Jika ada folder writable yang khusus untuk CodeIgniter
+    if [[ -d "$ROOT/application/cache" ]]; then
+        chmod -R 775 "$ROOT/application/cache"
+    fi
+    if [[ -d "$ROOT/application/logs" ]]; then
+        chmod -R 775 "$ROOT/application/logs"
+    fi
+    if [[ -d "$ROOT/writable" ]]; then
+        chmod -R 775 "$ROOT/writable"
+    fi
+    
+    echo "✅  Permissions fixed"
+}
+
+# --- Test PHP-FPM Connection ---
+test_php_fpm() {
+    if [[ "$PHP" == true ]]; then
+        echo "🧪  Testing PHP-FPM connection..."
+        
+        # Create test PHP file
+        TEST_FILE="$WEB_ROOT/test.php"
+        echo "<?php 
+        echo 'PHP is working!';
+        echo 'PHP Version: ' . phpversion();
+        ?>" | sudo tee "$TEST_FILE" >/dev/null
+        
+        # Fix permissions immediately
+        sudo chown $(whoami):staff "$TEST_FILE"
+        chmod 644 "$TEST_FILE"
+        
+        # Test via curl dengan timeout
+        echo "🔗  Testing URL: http://$HOST:$HTTP_PORT/test.php"
+        
+        if response=$(curl -s --connect-timeout 10 "http://$HOST:$HTTP_PORT/test.php"); then
+            if echo "$response" | grep -q "PHP is working"; then
+                echo "✅  PHP-FPM connection successful"
+                echo "    Response: $response"
+                sudo rm -f "$TEST_FILE"
+            else
+                echo "❌  PHP-FPM returned unexpected response"
+                echo "    Response: $response"
+                echo "    Please check PHP-FPM configuration manually"
+            fi
+        else
+            echo "❌  PHP-FPM connection failed (timeout or connection error)"
+            echo "    Test file: $TEST_FILE"
+            echo "    Please check:"
+            echo "    1. PHP-FPM is running: brew services start php"
+            echo "    2. Nginx configuration"
+            echo "    3. File permissions"
+        fi
+    fi
+}
 
 # --- Remove site ---
 if [[ "$REMOVE" == true ]]; then
