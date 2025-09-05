@@ -63,10 +63,7 @@ if [[ -z "$HOST" ]]; then
   usage
 fi
 
-# --- Determine project root (strip .test/.local/.dev) ---
-PROJECT_NAME=$(echo "$HOST" | sed -E 's/\.(test|local|dev)$//')
-ROOT="$PROJECTS_DIR/$PROJECT_NAME"
-
+ROOT="$PROJECTS_DIR/$HOST"
 CONF_PATH="$NGINX_SITES_AVAILABLE/$HOST.conf"
 LINK_PATH="$NGINX_SITES_ENABLED/$HOST.conf"
 
