@@ -113,31 +113,43 @@ if [[ -z "$HOST" ]]; then
   usage
 fi
 
-SITE_ROOT="$PROJECTS_ROOT/$HOST"
-CONF_FILE="$SITES_AVAILABLE/$HOST.conf"
-
-restart_nginx() {
-  echo "🔄 Restarting Nginx..."
-  if command -v brew &>/dev/null && brew services list | grep -q nginx; then
-    brew services restart nginx >/dev/null
+# Detect OS if not forced
+if [[ -z "$OS" ]]; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    OS="macos"
   else
-    sudo nginx -s reload
+    OS="linux"
   fi
-}
+fi
 
-remove_site() {
-  echo "ℹ️ Project folder exists: $SITE_ROOT"
+# Paths
+if [[ "$OS" == "macos" ]]; then
+  NGINX_CONF_DIR="/usr/local/etc/nginx"
+  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/servers"
+  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/servers"
+  NGINX_BIN="brew services restart nginx"
+else
+  NGINX_CONF_DIR="/etc/nginx"
+  NGINX_SITES_AVAILABLE="$NGINX_CONF_DIR/sites-available"
+  NGINX_SITES_ENABLED="$NGINX_CONF_DIR/sites-enabled"
+  NGINX_BIN="systemctl restart nginx"
+fi
+
+PROJECTS_DIR="$HOME/Projects/www"
+PROJECT_ROOT="$PROJECTS_DIR/$HOST"
+CONFIG_FILE="$NGINX_SITES_AVAILABLE/$HOST.conf"
+
+# Remove site
+if [[ "$REMOVE" == true ]]; then
+  if [[ -d "$PROJECT_ROOT" ]]; then
+    echo "ℹ️ Project folder exists: $PROJECT_ROOT"
+  fi
   echo "🗑 Removing site $HOST..."
-  sudo rm -f "$CONF_FILE"
-  sudo rm -f "$SITES_ENABLED/$HOST.conf"
+  sudo rm -f "$CONFIG_FILE"
   sudo sed -i.bak "/$HOST/d" /etc/hosts
-  restart_nginx
+  $NGINX_BIN
   echo "✅ $HOST removed successfully"
   exit 0
-}
-
-if [[ "$REMOVE" == true ]]; then
-  remove_site
 fi
 
 # Ensure dirs
