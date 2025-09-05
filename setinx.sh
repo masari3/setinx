@@ -16,20 +16,20 @@ Usage:
   ./setupnginx.sh --host <domain> [options]
 
 Options:
-  --host, -h       Set the hostname (e.g. project.test)
-  --php, -p        Enable PHP-FPM (auto-detect root/public, socket or TCP)
-  --php-tcp [port] Enable PHP-FPM via TCP (default: 9000, or custom port)
-  --php-sock [path] Enable PHP-FPM via Unix socket (default: /tmp/php-fpm.sock)
-  --ssl, -s        Enable SSL with mkcert (force redirect to HTTPS)
-  --remove, -r     Remove the site (config + hosts entry + project folder check)
-  --port, -P       Custom HTTP port (default: 80,443 with SSL)
-  --help           Show this help message
+  --host, -h        Set hostname (e.g. project.test) *Required
+  --project-name, -n Set project folder name (e.g. myapp)
+  --php, -p         Enable PHP-FPM (TCP port 9000) *Default for macOS
+  --php-tcp [port]  PHP-FPM via TCP (default: 9000)
+  --php-sock <path> PHP-FPM via Unix socket
+  --ssl, -s         Enable SSL (mkcert)
+  --remove, -r      Remove site (config + hosts)
+  --port, -P        Custom HTTP port (default 80)
+  --help            Show this help
 
 Examples:
-  ./setupnginx.sh --host myapp.test --php
+  ./setupnginx.sh --host myapp.test --project-name myapp --php
   ./setupnginx.sh --host myapp.test --php --ssl
-  ./setupnginx.sh --host myapp.test --php-tcp 9100 --ssl
-  ./setupnginx.sh --host myapp.test --php-sock /usr/local/var/run/php-fpm.sock
+  ./setupnginx.sh --host api.project.test -n project-api --ssl
   ./setupnginx.sh --host myapp.test --remove
 EOF
   exit 0
