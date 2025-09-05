@@ -156,15 +156,19 @@ fi
 mkdir -p "$PROJECT_ROOT"
 echo "📂 Created project root: $PROJECT_ROOT"
 
-# Add to /etc/hosts
+# Add to hosts
 if ! grep -q "$HOST" /etc/hosts; then
   echo "➕ Added $HOST to /etc/hosts"
   echo "127.0.0.1 $HOST" | sudo tee -a /etc/hosts >/dev/null
 fi
 
-# Ports
-HTTP_PORT="${CUSTOM_PORT:-80}"
-HTTPS_PORT="443"
+# Listen port
+if [[ -n "$CUSTOM_PORT" ]]; then
+  LISTEN_PORT="$CUSTOM_PORT"
+else
+  LISTEN_PORT="80"
+fi
+LISTEN_SSL_PORT="443"
 
 # Generate config
 cat <<EOF | sudo tee "$CONF_FILE" >/dev/null
