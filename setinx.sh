@@ -5,6 +5,8 @@ VERSION="1.1.5"
 PROJECTS_DIR="$HOME/Projects/www"
 NGINX_SITES_AVAILABLE="/usr/local/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
+HOSTS_FILE="/etc/hosts"
+HOSTS_BACKUP="/etc/hosts.bak"
 
 usage() {
   cat <<EOF
