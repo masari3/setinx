@@ -171,83 +171,92 @@ fi
 LISTEN_SSL_PORT="443"
 
 # Generate config
-cat <<EOF | sudo tee "$CONF_FILE" >/dev/null
-server {
-    listen $HTTP_PORT;
+CONF="server {
+    listen $LISTEN_PORT;
     server_name $HOST;
-    root $SITE_ROOT;
-
+    root $PROJECT_ROOT;
     index index.php index.html index.htm;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
-EOF
+"
 
 if [[ "$USE_PHP" == true ]]; then
-  if [[ -n "$PHP_TCP" ]]; then
-    FASTCGI="127.0.0.1:$PHP_TCP"
-  elif [[ -n "$PHP_SOCK" ]]; then
-    FASTCGI="unix:$PHP_SOCK"
-  else
-    FASTCGI="127.0.0.1:9000"
-  fi
-
-  cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
+  CONF+="
     location ~ \.php\$ {
         include fastcgi_params;
-        fastcgi_pass $FASTCGI;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+"
+  if [[ "$PHP_MODE" == "tcp" ]]; then
+    CONF+="        fastcgi_pass 127.0.0.1:${PHP_TCP_PORT};
+"
+  elif [[ "$PHP_MODE" == "sock" ]]; then
+    CONF+="        fastcgi_pass unix:${PHP_SOCK_PATH};
+"
+  fi
+  CONF+="        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
-EOF
+"
 fi
 
-cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
-}
-EOF
+CONF+="}
+"
 
-# SSL
+# SSL block
 if [[ "$USE_SSL" == true ]]; then
-  mkcert "$HOST"
-  cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
-server {
-    listen $HTTPS_PORT ssl;
+  CONF="server {
+    listen 80;
     server_name $HOST;
-    root $SITE_ROOT;
+    return 301 https://\$host\$request_uri;
+}
 
-    ssl_certificate $(pwd)/$HOST.pem;
-    ssl_certificate_key $(pwd)/$HOST-key.pem;
-
+server {
+    listen 443 ssl;
+    server_name $HOST;
+    root $PROJECT_ROOT;
     index index.php index.html index.htm;
+
+    ssl_certificate $(mkcert -CAROOT)/$HOST.pem;
+    ssl_certificate_key $(mkcert -CAROOT)/$HOST-key.pem;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
-EOF
+"
 
   if [[ "$USE_PHP" == true ]]; then
-    cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
+    CONF+="
     location ~ \.php\$ {
         include fastcgi_params;
-        fastcgi_pass $FASTCGI;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+"
+    if [[ "$PHP_MODE" == "tcp" ]]; then
+      CONF+="        fastcgi_pass 127.0.0.1:${PHP_TCP_PORT};
+"
+    elif [[ "$PHP_MODE" == "sock" ]]; then
+      CONF+="        fastcgi_pass unix:${PHP_SOCK_PATH};
+"
+    fi
+    CONF+="        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
-EOF
+"
   fi
 
-  cat <<EOF | sudo tee -a "$CONF_FILE" >/dev/null
-}
-EOF
+  CONF+="}
+"
 fi
 
-# Enable site
-sudo ln -sf "$CONF_FILE" "$SITES_ENABLED/"
+# Save config
+echo "$CONF" | sudo tee "$CONFIG_FILE" >/dev/null
 
-# Test & restart
-sudo nginx -t
-restart_nginx
+# Restart Nginx
+echo "🔄 Restarting Nginx..."
+if ! sudo nginx -t; then
+  echo "❌ Error: nginx configuration test failed"
+  exit 1
+fi
+$NGINX_BIN
 
-# Success message
+# Final info
 echo "🎉 Site setup complete!"
 echo "   URL: http://$HOST:$HTTP_PORT"
 echo "   Root: $SITE_ROOT"
