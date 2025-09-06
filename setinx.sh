@@ -316,12 +316,14 @@ if [[ "$PHP" == true ]]; then
     sleep 2 # Beri waktu untuk PHP-FPM restart
 fi
 
+# --- Test PHP-FPM connection ---
+test_php_fpm
+
 # --- Final output ---
-echo "🎉 Site setup complete!"
-if [[ "$SSL" == true ]]; then
-  echo "   URL: https://$HOST"
-else
-  echo "   URL: http://$HOST:$HTTP_PORT"
-fi
-echo "   Root: $ROOT"
-echo "   Config: $CONF_PATH"
+echo ""
+echo "🎉  Site setup complete!"
+echo "    URL: $( [[ "$SSL" == true ]] && echo "https://$HOST" || echo "http://$HOST:$HTTP_PORT" )"
+echo "    Root: $ROOT"
+echo "    Web Root: $WEB_ROOT"
+echo "    Config: $CONF_PATH"
+echo ""
