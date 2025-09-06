@@ -244,21 +244,31 @@ fi
 # --- Build PHP block ---
 PHP_BLOCK=""
 if [[ "$PHP" == true ]]; then
-  if [[ "$PHP_TCP" == true ]]; then
-    PORT="${PHP_TCP_PORT:-9000}"
-    PHP_BLOCK="location ~ \.php\$ {
-        include fastcgi_params;
-        fastcgi_pass 127.0.0.1:$PORT;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    }"
-  else
-    SOCKET_PATH="${PHP_SOCK_PATH:-/tmp/php-fpm.sock}"
-    PHP_BLOCK="location ~ \.php\$ {
-        include fastcgi_params;
-        fastcgi_pass unix:$SOCKET_PATH;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    }"
-  fi
+    if [[ "$PHP_TCP" == true ]]; then
+        PORT="${PHP_TCP_PORT:-9000}"
+        PHP_BLOCK="location ~ \.php\$ {
+    fastcgi_pass 127.0.0.1:$PORT;
+    fastcgi_index index.php;
+    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    include fastcgi_params;
+    fastcgi_param QUERY_STRING \$query_string;
+    fastcgi_param REQUEST_METHOD \$request_method;
+    fastcgi_param CONTENT_TYPE \$content_type;
+    fastcgi_param CONTENT_LENGTH \$content_length;
+}"
+    else
+        SOCK_PATH="${PHP_SOCK_PATH:-/tmp/php-fpm.sock}"
+        PHP_BLOCK="location ~ \.php\$ {
+    fastcgi_pass unix:$SOCK_PATH;
+    fastcgi_index index.php;
+    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    include fastcgi_params;
+    fastcgi_param QUERY_STRING \$query_string;
+    fastcgi_param REQUEST_METHOD \$request_method;
+    fastcgi_param CONTENT_TYPE \$content_type;
+    fastcgi_param CONTENT_LENGTH \$content_length;
+}"
+    fi
 fi
 
 # --- Custom ports ---
