@@ -227,34 +227,17 @@ SSL_LISTEN=""
 SSL_REDIRECT=""
 
 if [[ "$SSL" == true ]]; then
-  if ! command -v mkcert >/dev/null 2>&1; then
-    echo "❌ mkcert not found."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      echo "👉 Install with: brew install mkcert nss && mkcert -install"
-    else
-      echo "👉 Install with: sudo apt install mkcert && mkcert -install"
-    fi
-    read -p "SSL dependencies missing. Continue without SSL? (y/N): " choice
-    case "$choice" in
-      y|Y )
-        echo "⚠️  Continuing without SSL..."
-        SSL=false
-        ;;
-      * )
-        echo "❌ Aborting setup."
-        exit 1
-        ;;
-    esac
-  else
+  if command -v mkcert >/dev/null 2>&1; then
     CERT_DIR=$(mkcert -CAROOT)
-    if [[ ! -f "$CERT_DIR/$HOST.pem" ]]; then
-      echo "🔐 Generating certificate for $HOST..."
-      mkcert "$HOST"
-    fi
+    [[ ! -f "$CERT_DIR/$HOST.pem" ]] && mkcert "$HOST"
     CERT_LINE="ssl_certificate $CERT_DIR/$HOST.pem;
     ssl_certificate_key $CERT_DIR/$HOST-key.pem;"
     SSL_LISTEN="listen 443 ssl;"
     SSL_REDIRECT="if (\$scheme = http) { return 301 https://\$host\$request_uri; }"
+    HTTP_PORT=80
+  else
+    echo "⚠️   mkcert not found. SSL skipped."
+    SSL=false
   fi
 fi
 
