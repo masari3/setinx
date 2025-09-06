@@ -300,16 +300,20 @@ EOF
 # --- Symlink ---
 sudo ln -sf "$CONF_PATH" "$LINK_PATH"
 
-# --- Restart nginx ---
-echo "🔄 Restarting Nginx..."
-if ! sudo nginx -t; then
-  echo "❌ Error: nginx configuration test failed"
-  exit 1
+# --- Restart services ---
+echo "🔄  Restarting Nginx..."
+if ! sudo nginx -t -c /usr/local/etc/nginx/nginx.conf; then
+    echo "❌  Error: nginx config test failed"
+    exit 1
 fi
-if [[ "$(uname -s)" == "Darwin" ]]; then
-  brew services restart nginx
-else
-  sudo systemctl restart nginx || sudo service nginx restart
+
+brew services restart nginx
+
+# Restart PHP-FPM jika menggunakan PHP
+if [[ "$PHP" == true ]]; then
+    echo "🔄  Restarting PHP-FPM..."
+    brew services restart php
+    sleep 2 # Beri waktu untuk PHP-FPM restart
 fi
 
 # --- Final output ---
