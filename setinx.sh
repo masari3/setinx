@@ -283,7 +283,7 @@ server {
     listen $HTTP_PORT;
     $SSL_LISTEN
     server_name $HOST;
-    root $ROOT;
+    root $WEB_ROOT;
 
     index index.php index.html index.htm;
 
@@ -291,10 +291,9 @@ server {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
 
-    $PHP_BLOCK
-
-    $SSL_REDIRECT
-    $CERT_LINE
+$PHP_BLOCK
+$SSL_REDIRECT
+$CERT_LINE
 }
 EOF
 
