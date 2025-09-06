@@ -215,9 +215,10 @@ check_php_fpm
 fix_permissions
 
 # --- Add to /etc/hosts ---
-if ! grep -q "$HOST" /etc/hosts; then
-  echo "➕ Added $HOST to /etc/hosts"
-  echo "127.0.0.1 $HOST" | sudo tee -a /etc/hosts >/dev/null
+if ! grep -q "$HOST" "$HOSTS_FILE"; then
+  backup_hosts
+  echo "127.0.0.1 $HOST" | sudo tee -a "$HOSTS_FILE" >/dev/null
+  echo "➕  Added $HOST to $HOSTS_FILE"
 fi
 
 # --- SSL handling ---
