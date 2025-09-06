@@ -271,10 +271,12 @@ if [[ "$PHP" == true ]]; then
     fi
 fi
 
-# --- Custom ports ---
-HTTP_PORT="${CUSTOM_PORT:-80}"
+# --- Check port availability ---
+if lsof -i:$HTTP_PORT >/dev/null 2>&1; then
+  echo "⚠️   Warning: Port $HTTP_PORT already in use"
+fi
 
-# --- Write config ---
+# --- Write nginx config ---
 sudo mkdir -p "$NGINX_SITES_AVAILABLE" "$NGINX_SITES_ENABLED"
 cat <<EOF | sudo tee "$CONF_PATH" >/dev/null
 server {
