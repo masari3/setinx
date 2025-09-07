@@ -66,19 +66,19 @@ while [[ $# -gt 0 ]]; do
     --remove|-r) REMOVE=true; shift ;;
     --port|-P) CUSTOM_PORT="$2"; shift 2 ;;
     --help) usage ;;
-    *) echo "❌  Unknown option: $1"; usage ;;
+    *) echo -e "${RED}❌  Unknown option: $1${NC}"; usage ;;
   esac
 done
 
 if [[ -z "$HOST" ]]; then
-  echo "❌ Error: --host is required."
+  echo -e "${RED}❌  Error: --host is required.${NC}"
   usage
 fi
 
 # --- Determine project folder name ---
 if [[ -z "$PROJECT_NAME" ]]; then
   PROJECT_NAME="${HOST%%.*}"
-  echo "ℹ️   Using default project name: $PROJECT_NAME"
+  echo -e "${BLUE}ℹ️   Using default project name: $PROJECT_NAME${NC}"
 fi
 
 ROOT="$PROJECTS_DIR/$PROJECT_NAME"
@@ -133,25 +133,49 @@ check_php_installation() {
 # --- Check PHP-FPM Status ---
 check_php_fpm() {
     if [[ "$PHP" == true ]]; then
-        echo "🔍  Checking PHP-FPM status..."
+        echo -e "${BLUE}🔍  Checking PHP-FPM status...${NC}"
         
         if [[ "$PHP_TCP" == true ]]; then
             PORT="${PHP_TCP_PORT:-9000}"
             if lsof -i:$PORT >/dev/null 2>&1; then
-                echo "✅  PHP-FPM is running on TCP port $PORT"
+                echo -e "${GREEN}✅  PHP-FPM is running on TCP port $PORT${NC}"
             else
-                echo "❌  ERROR: PHP-FPM is NOT running on TCP port $PORT"
-                echo "    Please start PHP-FPM: brew services start php"
-                exit 1
+                echo -e "${YELLOW}⚠️   PHP-FPM is NOT running on TCP port $PORT${NC}"
+                echo -e "${BLUE}    Starting PHP-FPM...${NC}"
+                if brew services start php; then
+                    sleep 2
+                    if lsof -i:$PORT >/dev/null 2>&1; then
+                        echo -e "${GREEN}✅  PHP-FPM started successfully on port $PORT${NC}"
+                    else
+                        echo -e "${RED}❌  ERROR: Failed to start PHP-FPM on port $PORT${NC}"
+                        echo "    Please start manually: brew services start php"
+                        exit 1
+                    fi
+                else
+                    echo -e "${RED}❌  ERROR: Failed to start PHP-FPM${NC}"
+                    exit 1
+                fi
             fi
         else
             SOCK_PATH="${PHP_SOCK_PATH:-/tmp/php-fpm.sock}"
             if [[ -S "$SOCK_PATH" ]]; then
-                echo "✅  PHP-FPM socket found: $SOCK_PATH"
+                echo -e "${GREEN}✅  PHP-FPM socket found: $SOCK_PATH${NC}"
             else
-                echo "❌  ERROR: PHP-FPM socket NOT found: $SOCK_PATH"
-                echo "    Please start PHP-FPM: brew services start php"
-                exit 1
+                echo -e "${YELLOW}⚠️   PHP-FPM socket NOT found: $SOCK_PATH${NC}"
+                echo -e "${BLUE}    Starting PHP-FPM...${NC}"
+                if brew services start php; then
+                    sleep 2
+                    if [[ -S "$SOCK_PATH" ]]; then
+                        echo -e "${GREEN}✅  PHP-FPM started successfully${NC}"
+                    else
+                        echo -e "${RED}❌  ERROR: Failed to start PHP-FPM${NC}"
+                        echo "    Please check PHP-FPM configuration"
+                        exit 1
+                    fi
+                else
+                    echo -e "${RED}❌  ERROR: Failed to start PHP-FPM${NC}"
+                    exit 1
+                fi
             fi
         fi
     fi
@@ -159,7 +183,7 @@ check_php_fpm() {
 
 # --- Fix Permissions ---
 fix_permissions() {
-    echo "🔧  Fixing file permissions..."
+    echo -e "${BLUE}🔧  Fixing file permissions...${NC}"
     
     # Set ownership to user
     sudo chown -R $(whoami):staff "$ROOT"
@@ -179,40 +203,44 @@ fix_permissions() {
         chmod -R 775 "$ROOT/writable"
     fi
     
-    echo "✅  Permissions fixed"
+    echo -e "${GREEN}✅  Permissions fixed${NC}"
 }
 
 # --- Test PHP-FPM Connection ---
 test_php_fpm() {
     if [[ "$PHP" == true ]]; then
-        echo "🧪  Testing PHP-FPM connection..."
+        echo -e "${BLUE}🧪  Testing PHP-FPM connection...${NC}"
         
         # Create test PHP file
         TEST_FILE="$WEB_ROOT/test.php"
-        echo "<?php 
-        echo 'PHP is working!';
-        echo 'PHP Version: ' . phpversion();
-        ?>" | sudo tee "$TEST_FILE" >/dev/null
+        cat > "$TEST_FILE" << 'EOF'
+<?php
+echo 'PHP is working!<br>';
+echo 'PHP Version: ' . phpversion() . '<br>';
+echo 'Server: ' . $_SERVER['SERVER_SOFTWARE'] . '<br>';
+echo 'Loaded Extensions: ' . implode(', ', get_loaded_extensions());
+?>
+EOF
         
         # Fix permissions immediately
-        sudo chown $(whoami):staff "$TEST_FILE"
+        chown $(whoami):staff "$TEST_FILE"
         chmod 644 "$TEST_FILE"
         
         # Test via curl dengan timeout
-        echo "🔗  Testing URL: http://$HOST:$HTTP_PORT/test.php"
+        echo -e "${BLUE}🔗  Testing URL: http://$HOST:$HTTP_PORT/test.php${NC}"
         
         if response=$(curl -s --connect-timeout 10 "http://$HOST:$HTTP_PORT/test.php"); then
             if echo "$response" | grep -q "PHP is working"; then
-                echo "✅  PHP-FPM connection successful"
-                echo "    Response: $response"
-                sudo rm -f "$TEST_FILE"
+                echo -e "${GREEN}✅  PHP-FPM connection successful${NC}"
+                echo "    Response: PHP is working (details in browser)"
+                rm -f "$TEST_FILE"
             else
-                echo "❌  PHP-FPM returned unexpected response"
+                echo -e "${YELLOW}⚠️   PHP-FPM returned unexpected response${NC}"
                 echo "    Response: $response"
                 echo "    Please check PHP-FPM configuration manually"
             fi
         else
-            echo "❌  PHP-FPM connection failed (timeout or connection error)"
+            echo -e "${RED}❌  PHP-FPM connection failed (timeout or connection error)${NC}"
             echo "    Test file: $TEST_FILE"
             echo "    Please check:"
             echo "    1. PHP-FPM is running: brew services start php"
@@ -224,36 +252,40 @@ test_php_fpm() {
 
 # --- Remove site ---
 if [[ "$REMOVE" == true ]]; then
-  echo "🗑   Removing site $HOST..."
+  echo -e "${YELLOW}🗑   Removing site $HOST...${NC}"
   backup_hosts
-  [[ -f "$CONF_PATH" ]] && sudo rm -f "$CONF_PATH"
-  [[ -L "$LINK_PATH" ]] && sudo rm -f "$LINK_PATH"
+  [[ -f "$CONF_PATH" ]] && rm -f "$CONF_PATH"
+  [[ -L "$LINK_PATH" ]] && rm -f "$LINK_PATH"
   sudo sed -i.bak "/[[:space:]]$HOST$/d" "$HOSTS_FILE"
-  echo "ℹ️   Project folder: $ROOT"
-  echo "🔄  Restarting Nginx..."
+  echo -e "${BLUE}ℹ️   Project folder: $ROOT${NC}"
+  echo -e "${BLUE}🔄  Restarting Nginx...${NC}"
   brew services restart nginx
-  echo "✅  $HOST removed successfully"
+  echo -e "${GREEN}✅  $HOST removed successfully${NC}"
   exit 0
 fi
 
 # --- Create project folder ---
 if [[ ! -d "$ROOT" ]]; then
   mkdir -p "$ROOT"
-  echo "📂 Created project root: $ROOT"
+  echo -e "${GREEN}📂  Created project root: $ROOT${NC}"
 else
-  echo "ℹ️ Project folder exists: $ROOT"
+  echo -e "${BLUE}ℹ️   Project folder exists: $ROOT${NC}"
 fi
 
 # --- Simple Auto-detect web root folder ---
 if [[ -d "$ROOT/public" ]]; then
   WEB_ROOT="$ROOT/public"
-  echo "🌐  Detected Laravel-like structure, using web root: $WEB_ROOT"
+  echo -e "${GREEN}🌐  Detected Laravel-like structure, using web root: $WEB_ROOT${NC}"
+elif [[ -d "$ROOT/web" ]]; then
+  WEB_ROOT="$ROOT/web"
+  echo -e "${GREEN}🌐  Detected Symfony-like structure, using web root: $WEB_ROOT${NC}"
 else
   WEB_ROOT="$ROOT"
-  echo "🌐  Using project root as web root: $WEB_ROOT"
+  echo -e "${BLUE}🌐  Using project root as web root: $WEB_ROOT${NC}"
 fi
 
-# --- Check PHP-FPM before proceeding ---
+# --- Check PHP before proceeding ---
+check_php_installation
 check_php_fpm
 
 # --- Fix permissions for CodeIgniter ---
@@ -263,30 +295,30 @@ fix_permissions
 if ! grep -q "$HOST" "$HOSTS_FILE"; then
   backup_hosts
   echo "127.0.0.1 $HOST" | sudo tee -a "$HOSTS_FILE" >/dev/null
-  echo "➕  Added $HOST to $HOSTS_FILE"
+  echo -e "${GREEN}➕  Added $HOST to $HOSTS_FILE${NC}"
 fi
 
-# --- SSL handling ---
+# --- SSL ---
 CERT_LINE=""
 SSL_LISTEN=""
 SSL_REDIRECT=""
-
 if [[ "$SSL" == true ]]; then
   if command -v mkcert >/dev/null 2>&1; then
     CERT_DIR=$(mkcert -CAROOT)
     [[ ! -f "$CERT_DIR/$HOST.pem" ]] && mkcert "$HOST"
     CERT_LINE="ssl_certificate $CERT_DIR/$HOST.pem;
-    ssl_certificate_key $CERT_DIR/$HOST-key.pem;"
+  ssl_certificate_key $CERT_DIR/$HOST-key.pem;"
     SSL_LISTEN="listen 443 ssl;"
     SSL_REDIRECT="if (\$scheme = http) { return 301 https://\$host\$request_uri; }"
     HTTP_PORT=80
   else
-    echo "⚠️   mkcert not found. SSL skipped."
+    echo -e "${YELLOW}⚠️   mkcert not found. SSL skipped.${NC}"
+    echo "    Install mkcert: brew install mkcert"
     SSL=false
   fi
 fi
 
-# --- Build PHP block ---
+# --- PHP block ---
 PHP_BLOCK=""
 if [[ "$PHP" == true ]]; then
     if [[ "$PHP_TCP" == true ]]; then
@@ -318,12 +350,12 @@ fi
 
 # --- Check port availability ---
 if lsof -i:$HTTP_PORT >/dev/null 2>&1; then
-  echo "⚠️   Warning: Port $HTTP_PORT already in use"
+  echo -e "${YELLOW}⚠️   Warning: Port $HTTP_PORT already in use${NC}"
 fi
 
 # --- Write nginx config ---
-sudo mkdir -p "$NGINX_SITES_AVAILABLE" "$NGINX_SITES_ENABLED"
-cat <<EOF | sudo tee "$CONF_PATH" >/dev/null
+mkdir -p "$NGINX_SITES_AVAILABLE" "$NGINX_SITES_ENABLED"
+cat <<EOF | tee "$CONF_PATH" >/dev/null
 server {
     listen $HTTP_PORT;
     $SSL_LISTEN
@@ -343,22 +375,27 @@ $CERT_LINE
 EOF
 
 # --- Symlink ---
-sudo ln -sf "$CONF_PATH" "$LINK_PATH"
+ln -sf "$CONF_PATH" "$LINK_PATH"
 
 # --- Restart services ---
-echo "🔄  Restarting Nginx..."
-if ! sudo nginx -t -c /usr/local/etc/nginx/nginx.conf; then
-    echo "❌  Error: nginx config test failed"
+echo -e "${BLUE}🔄  Restarting Nginx...${NC}"
+if ! nginx -t -c /usr/local/etc/nginx/nginx.conf; then
+    echo -e "${RED}❌  Error: nginx config test failed${NC}"
+    echo "    Please check the configuration file: $CONF_PATH"
     exit 1
 fi
 
 brew services restart nginx
 
-# Restart PHP-FPM jika menggunakan PHP
-if [[ "$PHP" == true ]]; then
-    echo "🔄  Restarting PHP-FPM..."
-    brew services restart php
-    sleep 2 # Beri waktu untuk PHP-FPM restart
+# Restart PHP-FPM jika menggunakan PHP dan PHP terinstall
+if [[ "$PHP" == true ]] && brew list --formula | grep -q "^php@\?[0-9.]*$"; then
+    echo -e "${BLUE}🔄  Restarting PHP-FPM...${NC}"
+    if brew services restart php; then
+        sleep 2 # Beri waktu untuk PHP-FPM restart
+    else
+        echo -e "${YELLOW}⚠️   Warning: Failed to restart PHP-FPM${NC}"
+        echo "    Please start manually: brew services start php"
+    fi
 fi
 
 # --- Test PHP-FPM connection ---
@@ -366,9 +403,11 @@ test_php_fpm
 
 # --- Final output ---
 echo ""
-echo "🎉  Site setup complete!"
+echo -e "${GREEN}🎉  Site setup complete!${NC}"
 echo "    URL: $( [[ "$SSL" == true ]] && echo "https://$HOST" || echo "http://$HOST:$HTTP_PORT" )"
 echo "    Root: $ROOT"
 echo "    Web Root: $WEB_ROOT"
 echo "    Config: $CONF_PATH"
+echo "    PHP: $( [[ "$PHP" == true ]] && echo "Enabled" || echo "Disabled" )"
+echo "    SSL: $( [[ "$SSL" == true ]] && echo "Enabled" || echo "Disabled" )"
 echo ""
