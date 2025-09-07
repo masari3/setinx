@@ -90,8 +90,44 @@ HTTP_PORT="${CUSTOM_PORT:-80}"
 backup_hosts() {
   if [[ -f "$HOSTS_FILE" ]]; then
     sudo cp "$HOSTS_FILE" "$HOSTS_BACKUP"
-    echo "💾  Backup hosts file created at $HOSTS_BACKUP"
+    echo -e "${GREEN}💾  Backup hosts file created at $HOSTS_BACKUP${NC}"
   fi
+}
+
+# --- Check PHP Installation ---
+check_php_installation() {
+    if [[ "$PHP" == true ]]; then
+        echo -e "${BLUE}🔍  Checking PHP installation...${NC}"
+        
+        # Check if Homebrew is installed
+        if ! command -v brew >/dev/null 2>&1; then
+            echo -e "${RED}❌  ERROR: Homebrew is not installed${NC}"
+            echo "    Please install Homebrew first:"
+            echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            exit 1
+        fi
+        
+        # Check if PHP formula is installed via Homebrew
+        if ! brew list --formula | grep -q "^php@\?[0-9.]*$"; then
+            echo -e "${RED}❌  ERROR: PHP is not installed via Homebrew${NC}"
+            echo "    Please install PHP first:"
+            echo "    brew install php"
+            echo "    or"
+            echo "    brew install php@8.3"
+            echo "    or specific version: brew install php@8.2"
+            exit 1
+        fi
+        
+        # Check PHP version
+        if command -v php >/dev/null 2>&1; then
+            PHP_VERSION=$(php -v | head -1 | awk '{print $2}' | cut -d. -f1-2)
+            echo -e "${GREEN}✅  PHP $PHP_VERSION is installed${NC}"
+        else
+            echo -e "${RED}❌  ERROR: PHP is installed but not in PATH${NC}"
+            echo "    Please check your PHP installation and PATH configuration"
+            exit 1
+        fi
+    fi
 }
 
 # --- Check PHP-FPM Status ---
