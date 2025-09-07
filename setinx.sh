@@ -1,7 +1,7 @@
 #!/bin/bash
-# setupnginx.sh v1.1.5 (Fixed PHP-FPM TCP 9000 + CodeIgniter support)
+# setupnginx.sh v1.1.6 (Added PHP installation check + Improved error handling)
 
-VERSION="1.1.5"
+VERSION="1.1.6"
 PROJECTS_DIR="$HOME/Projects/www"
 NGINX_SITES_AVAILABLE="/usr/local/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
