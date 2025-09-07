@@ -1,7 +1,7 @@
 #!/bin/bash
-# setupnginx.sh v1.1.6 (Added PHP installation check + Improved error handling)
+# setupnginx.sh v1.1.7 (Fixed SSL path with spaces + PHP installation check)
 
-VERSION="1.1.6"
+VERSION="1.1.7"
 PROJECTS_DIR="$HOME/Projects/www"
 NGINX_SITES_AVAILABLE="/usr/local/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
