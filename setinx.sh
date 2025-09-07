@@ -45,6 +45,7 @@ EOF
 
 # --- Parse arguments ---
 HOST=""
+PROJECT_NAME=""
 PHP=false
 PHP_TCP=false
 PHP_TCP_PORT="9000"
