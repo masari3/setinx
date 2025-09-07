@@ -392,6 +392,10 @@ server {
     server_name $HOST;
     root $WEB_ROOT;
 
+    # Custom logging dengan pattern: namadomain_access.log dan namadomain_error.log
+    access_log /usr/local/var/log/nginx/${HOST}_access.log;
+    error_log /usr/local/var/log/nginx/${HOST}_error.log;
+
     index index.php index.html index.htm;
 
     location / {
