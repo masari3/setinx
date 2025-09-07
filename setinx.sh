@@ -434,10 +434,50 @@ test_php_fpm
 # --- Final output ---
 echo ""
 echo -e "${GREEN}🎉  Site setup complete!${NC}"
+
+# URL
 echo "    URL: $( [[ "$SSL" == true ]] && echo "https://$HOST" || echo "http://$HOST:$HTTP_PORT" )"
-echo "    Root: $ROOT"
-echo "    Web Root: $WEB_ROOT"
-echo "    Config: $CONF_PATH"
+
+# Clickable paths untuk macOS (Command+Click di Terminal, iTerm2, VS Code)
+echo "    Root: file://$ROOT"
+echo "    Web Root: file://$WEB_ROOT"
+echo "    Config: file://$CONF_PATH"
+
+# Regular paths untuk compatibility
+echo "    Root Path: $ROOT"
+echo "    Web Root Path: $WEB_ROOT"
+echo "    Config Path: $CONF_PATH"
+
 echo "    PHP: $( [[ "$PHP" == true ]] && echo "Enabled" || echo "Disabled" )"
 echo "    SSL: $( [[ "$SSL" == true ]] && echo "Enabled" || echo "Disabled" )"
+
+# Debug info untuk SSL jika disabled tapi seharusnya enabled
+if [[ "$SSL" == false && "$1" == *"--ssl"* ]]; then
+    echo ""
+    echo -e "${YELLOW}🔍  SSL Debug Information:${NC}"
+    echo "    mkcert installed: $(command -v mkcert >/dev/null 2>&1 && echo "Yes" || echo "No")"
+    if command -v mkcert >/dev/null 2>&1; then
+        CERT_DIR=$(mkcert -CAROOT)
+        echo "    Certificate directory: $CERT_DIR"
+        echo "    Certificate exists: $( [[ -f "$CERT_DIR/$HOST.pem" ]] && echo "Yes" || echo "No" )"
+        echo "    Key exists: $( [[ -f "$CERT_DIR/$HOST-key.pem" ]] && echo "Yes" || echo "No" )"
+        
+        if [[ ! -f "$CERT_DIR/$HOST.pem" ]]; then
+            echo -e "${CYAN}💡  Try running manually:${NC}"
+            echo "    mkcert -install"
+            echo "    mkcert $HOST"
+        fi
+    else
+        echo -e "${CYAN}💡  Install mkcert:${NC}"
+        echo "    brew install mkcert"
+    fi
+fi
+
+# Tips untuk user
+echo ""
+echo -e "${CYAN}💡  Tips:${NC}"
+echo "    - Command+Click the 'file://' paths to open in Finder"
+echo "    - Command+Click the URL to open in your browser"
+echo "    - Check the config file if you need to make adjustments"
+echo "    - Run with --ssl to enable HTTPS (if not already enabled)"
 echo ""
