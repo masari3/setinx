@@ -303,6 +303,8 @@ fi
 CERT_LINE=""
 SSL_LISTEN=""
 SSL_REDIRECT=""
+SSL_SUCCESS=true
+
 if [[ "$SSL" == true ]]; then
   if command -v mkcert >/dev/null 2>&1; then
     CERT_DIR=$(mkcert -CAROOT)
@@ -310,17 +312,24 @@ if [[ "$SSL" == true ]]; then
     # Pastikan mkcert CA sudah diinstall
     if [[ ! -f "$CERT_DIR/rootCA.pem" ]]; then
       echo -e "${YELLOW}⚠️   Installing mkcert CA...${NC}"
-      mkcert -install
+      if ! mkcert -install; then
+        echo -e "${RED}❌  Failed to install mkcert CA${NC}"
+        SSL_SUCCESS=false
+      fi
     fi
     
-    # Generate certificate di CERT_DIR
-    if [[ ! -f "$CERT_DIR/$HOST.pem" ]]; then
-      echo -e "${BLUE}📝  Creating SSL certificate for $HOST...${NC}"
-      cd "$CERT_DIR" && mkcert "$HOST" && cd - >/dev/null
+    if [[ "$SSL_SUCCESS" == true ]]; then
+      # Generate certificate di CERT_DIR
+      if [[ ! -f "$CERT_DIR/$HOST.pem" ]]; then
+        echo -e "${BLUE}📝  Creating SSL certificate for $HOST...${NC}"
+        if ! (cd "$CERT_DIR" && mkcert "$HOST"); then
+          echo -e "${RED}❌  Failed to create SSL certificate${NC}"
+          SSL_SUCCESS=false
+        fi
+      fi
     fi
     
-    # Pastikan certificate files exist
-    if [[ -f "$CERT_DIR/$HOST.pem" && -f "$CERT_DIR/$HOST-key.pem" ]]; then
+    if [[ "$SSL_SUCCESS" == true && -f "$CERT_DIR/$HOST.pem" && -f "$CERT_DIR/$HOST-key.pem" ]]; then
       # SELALU gunakan quotes untuk path certificate (handle spasi)
       CERT_LINE="ssl_certificate \"$CERT_DIR/$HOST.pem\";
 ssl_certificate_key \"$CERT_DIR/$HOST-key.pem\";"
@@ -329,8 +338,7 @@ ssl_certificate_key \"$CERT_DIR/$HOST-key.pem\";"
       HTTP_PORT=80
       echo -e "${GREEN}✅  SSL certificate configured${NC}"
     else
-      echo -e "${RED}❌  ERROR: SSL certificate files not found${NC}"
-      echo "    Expected: $CERT_DIR/$HOST.pem"
+      echo -e "${RED}❌  SSL configuration failed, continuing without SSL${NC}"
       SSL=false
     fi
   else
@@ -422,18 +430,6 @@ fi
 
 # --- Test PHP-FPM connection ---
 test_php_fpm
-
-# --- Debug info for SSL ---
-if [[ "$SSL" == true ]]; then
-    echo -e "${BLUE}🔍  SSL Debug Info:${NC}"
-    echo "    Certificate: $CERT_DIR/$HOST.pem"
-    echo "    Key: $CERT_DIR/$HOST-key.pem"
-    if [[ -f "$CERT_DIR/$HOST.pem" ]]; then
-        echo -e "    Status: ${GREEN}Found${NC}"
-    else
-        echo -e "    Status: ${RED}Missing${NC}"
-    fi
-fi
 
 # --- Final output ---
 echo ""
