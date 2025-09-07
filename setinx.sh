@@ -8,6 +8,14 @@ NGINX_SITES_ENABLED="/usr/local/etc/nginx/servers"
 HOSTS_FILE="/etc/hosts"
 HOSTS_BACKUP="/etc/hosts.bak"
 
+# --- Colors for output ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# --- Usage ---
 usage() {
   cat <<EOF
 setupnginx.sh v$VERSION
