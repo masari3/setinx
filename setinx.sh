@@ -439,14 +439,9 @@ echo -e "${GREEN}🎉  Site setup complete!${NC}"
 echo "    URL: $( [[ "$SSL" == true ]] && echo "https://$HOST" || echo "http://$HOST:$HTTP_PORT" )"
 
 # Clickable paths untuk macOS (Command+Click di Terminal, iTerm2, VS Code)
-echo "    Root: file://$ROOT"
-echo "    Web Root: file://$WEB_ROOT"
-echo "    Config: file://$CONF_PATH"
-
-# Regular paths untuk compatibility
-echo "    Root Path: $ROOT"
-echo "    Web Root Path: $WEB_ROOT"
-echo "    Config Path: $CONF_PATH"
+echo "    Root: $ROOT"
+echo "    Web Root: $WEB_ROOT"
+echo "    Config: $CONF_PATH"
 
 echo "    PHP: $( [[ "$PHP" == true ]] && echo "Enabled" || echo "Disabled" )"
 echo "    SSL: $( [[ "$SSL" == true ]] && echo "Enabled" || echo "Disabled" )"
