@@ -402,9 +402,21 @@ server {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
 
-$PHP_BLOCK
-$SSL_REDIRECT
-$CERT_LINE
+  $PHP_BLOCK
+  $SSL_REDIRECT
+  $CERT_LINE
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)\$ {
+        expires max;
+        log_not_found off;
+    }
+
+    client_max_body_size 100M;
+    
 }
 EOF
 
