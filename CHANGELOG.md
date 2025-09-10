@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/masari3/setinx/compare/v1.2.2...v1.3.0) (2025-09-10)
+
+
+### Features
+
+* add confirmation change file permission ([81923b0](https://github.com/masari3/setinx/commit/81923b03b21f0ab37c90cb4be880862af55174bb))
+
 ### [1.2.2](https://github.com/masari3/setinx/compare/v1.2.1...v1.2.2) (2025-09-08)
 
 ### [1.2.1](///compare/v1.2.0...v1.2.1) (2025-09-07)
