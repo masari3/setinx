@@ -1,5 +1,5 @@
 #!/bin/bash
-# setupnginx.sh v1.1.8 (Fixed SSL issues + Clickable paths + Better debug)
+# setupnginx.sh v1.2.1 (Added permission confirmation)
 
 VERSION="1.1.8"
 PROJECTS_DIR="$HOME/Projects/www"
@@ -182,29 +182,36 @@ check_php_fpm() {
     fi
 }
 
-# --- Fix Permissions ---
+# --- Fix Permissions with confirmation ---
 fix_permissions() {
-    echo -e "${BLUE}🔧  Fixing file permissions...${NC}"
+    echo -n -e "${YELLOW}🔧  Fix file permissions? (y/n): ${NC}"
+    read -r response
     
-    # Set ownership to user
-    sudo chown -R $(whoami):staff "$ROOT"
-    
-    # Set appropriate permissions
-    find "$ROOT" -type d -exec chmod 755 {} \;
-    find "$ROOT" -type f -exec chmod 644 {} \;
-    
-    # Jika ada folder writable yang khusus untuk CodeIgniter
-    if [[ -d "$ROOT/application/cache" ]]; then
-        chmod -R 775 "$ROOT/application/cache"
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}🔧  Fixing file permissions...${NC}"
+        
+        # Set ownership to user
+        sudo chown -R $(whoami):staff "$ROOT"
+        
+        # Set appropriate permissions
+        find "$ROOT" -type d -exec chmod 755 {} \;
+        find "$ROOT" -type f -exec chmod 644 {} \;
+        
+        # Framework-specific folders
+        if [[ -d "$ROOT/application/cache" ]]; then
+            chmod -R 775 "$ROOT/application/cache"
+        fi
+        if [[ -d "$ROOT/application/logs" ]]; then
+            chmod -R 775 "$ROOT/application/logs"
+        fi
+        if [[ -d "$ROOT/writable" ]]; then
+            chmod -R 775 "$ROOT/writable"
+        fi
+        
+        echo -e "${GREEN}✅  Permissions fixed${NC}"
+    else
+        echo -e "${YELLOW}⏭️   Skipping permission fix${NC}"
     fi
-    if [[ -d "$ROOT/application/logs" ]]; then
-        chmod -R 775 "$ROOT/application/logs"
-    fi
-    if [[ -d "$ROOT/writable" ]]; then
-        chmod -R 775 "$ROOT/writable"
-    fi
-    
-    echo -e "${GREEN}✅  Permissions fixed${NC}"
 }
 
 # --- Test PHP-FPM Connection ---
